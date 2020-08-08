@@ -1,0 +1,9 @@
+botocore==1.17.38
+decorator==4.4.2
+docutils==0.15.2
+jmespath==0.10.0
+networkx==2.4
+pynamodb==4.3.2
+python-dateutil==2.8.1
+six==1.15.0
+urllib3==1.25.10

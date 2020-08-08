@@ -4,6 +4,8 @@ Grand graph databasifier.
 Aug 2020
 """
 
+# docker run -p 8000:8000 amazon/dynamodb-local
+
 import abc
 from typing import Hashable, Generator
 
@@ -226,7 +228,8 @@ class Graph:
     def __init__(self, backend: Backend = None):
         self.backend = backend or _DEFAULT_BACKEND()
 
-        class NetworkXAdapter:
+        class _NetworkXAdapter(nx.Graph):
+            # class _NetworkXAdapter(nx.Graph):
             def __init__(self, parent: "Graph"):
                 self.parent = parent
 
@@ -247,4 +250,4 @@ class Graph:
                     return self.parent.backend.get_node_by_id(key)
                 return self.parent.backend.get_edge_by_id(*key)
 
-        self.nx = NetworkXAdapter(self)
+        self.nx = _NetworkXAdapter(self)
