@@ -12,35 +12,38 @@ from typing import Hashable, Generator
 import networkx as nx
 
 from .backends import Backend, NetworkXBackend
+from .dialects import NetworkXDialect, CypherDialect
 
 
 _DEFAULT_BACKEND = NetworkXBackend
 
 
 class Graph:
+    """
+    A grand.Graph enables you to manipulate a graph using multiple dialects.
+
+    """
+
     def __init__(self, backend: Backend = None):
+        """
+        Create a new grand.Graph.
+
+        Arguments:
+            backend (Backend): The backend to use. If none is provided, will
+                default to _DEFAULT_BACKEND.
+
+        Returns:
+            None
+
+        """
         self.backend = backend or _DEFAULT_BACKEND()
 
-        class _NetworkXAdapter(nx.Graph):
-            # class _NetworkXAdapter(nx.Graph):
-            def __init__(self, parent: "Graph"):
-                self.parent = parent
+        # Attach dialects:
+        self.nx = NetworkXDialect(self)
 
-            def add_node(self, name: Hashable, **kwargs):
-                return self.parent.backend.add_node(name, kwargs)
+    def save(self, filename: str) -> str:
+        raise NotImplementedError()
 
-            def nodes(self, data: bool = False):
-                return self.parent.backend.all_nodes_as_generator(include_metadata=data)
-
-            def add_edge(self, u: Hashable, v: Hashable, **kwargs):
-                return self.parent.backend.add_edge(u, v, kwargs)
-
-            def edges(self, data: bool = False):
-                return self.parent.backend.all_edges_as_generator(include_metadata=data)
-
-            def __getitem__(self, key):
-                if not isinstance(key, (tuple, list)):
-                    return self.parent.backend.get_node_by_id(key)
-                return self.parent.backend.get_edge_by_id(*key)
-
-        self.nx = _NetworkXAdapter(self)
+    @staticmethod
+    def load(self, filename: str) -> str:
+        raise NotImplementedError()
