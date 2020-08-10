@@ -2,22 +2,22 @@ import unittest
 
 import networkx as nx
 
-from . import NetworkXBackend
+from . import SQLBackend
 from .. import Graph
 
 
-class TestNetworkXBackend(unittest.TestCase):
+class TestSQLBackend(unittest.TestCase):
     def test_can_create(self):
-        NetworkXBackend()
+        SQLBackend()
 
     def setUp(self):
         pass
 
-    # def tearDown(self):
-    #     NetworkXBackend().teardown(yes_i_am_sure=True)
+    def tearDown(self):
+        SQLBackend().teardown(yes_i_am_sure=True)
 
     def test_can_add_node(self):
-        G = Graph(backend=NetworkXBackend())
+        G = Graph(backend=SQLBackend())
         nxG = nx.Graph()
         G.nx.add_node("A", k="v")
         nxG.add_node("A", k="v")
@@ -27,7 +27,7 @@ class TestNetworkXBackend(unittest.TestCase):
         self.assertEqual(len(G.nx.nodes()), len(nxG.nodes()))
 
     def test_can_add_edge(self):
-        G = Graph(backend=NetworkXBackend())
+        G = Graph(backend=SQLBackend())
         nxG = nx.Graph()
         G.nx.add_edge("A", "B")
         nxG.add_edge("A", "B")
@@ -37,7 +37,7 @@ class TestNetworkXBackend(unittest.TestCase):
         self.assertEqual(len(G.nx.edges()), len(nxG.edges()))
 
     def test_can_get_node(self):
-        G = Graph(backend=NetworkXBackend())
+        G = Graph(backend=SQLBackend())
         nxG = nx.Graph()
         md = dict(k="B")
         G.nx.add_node("A", **md)
@@ -45,7 +45,7 @@ class TestNetworkXBackend(unittest.TestCase):
         self.assertEqual(G.nx.nodes["A"], nxG.nodes["A"])
 
     def test_can_get_edge(self):
-        G = Graph(backend=NetworkXBackend())
+        G = Graph(backend=SQLBackend())
         nxG = nx.Graph()
         md = dict(k="B")
         G.nx.add_edge("A", "B", **md)
@@ -53,7 +53,7 @@ class TestNetworkXBackend(unittest.TestCase):
         self.assertEqual(G.nx.get_edge_data("A", "B"), nxG.get_edge_data("A", "B"))
 
     def test_can_get_neighbors(self):
-        G = Graph(backend=NetworkXBackend())
+        G = Graph(backend=SQLBackend())
         nxG = nx.Graph()
         G.nx.add_edge("A", "B")
         nxG.add_edge("A", "B")
@@ -81,7 +81,7 @@ class TestNetworkXBackend(unittest.TestCase):
         )
 
     def test_undirected_adj(self):
-        G = Graph(backend=NetworkXBackend())
+        G = Graph(backend=SQLBackend())
         nxG = nx.Graph()
         self.assertEqual(G.nx._adj, nxG._adj)
         G.nx.add_edge("A", "B")
@@ -89,7 +89,7 @@ class TestNetworkXBackend(unittest.TestCase):
         self.assertEqual(G.nx._adj, nxG._adj)
 
     def test_directed_adj(self):
-        G = Graph(backend=NetworkXBackend(directed=True))
+        G = Graph(backend=SQLBackend(directed=True))
         nxG = nx.DiGraph()
         self.assertEqual(G.nx._adj, nxG._adj)
         G.nx.add_edge("A", "B")
@@ -97,7 +97,7 @@ class TestNetworkXBackend(unittest.TestCase):
         self.assertEqual(G.nx._adj, nxG._adj)
 
     def test_can_traverse_undirected_graph(self):
-        G = Graph(backend=NetworkXBackend())
+        G = Graph(backend=SQLBackend())
         nxG = nx.Graph()
         md = dict(k="B")
         G.nx.add_edge("A", "B", **md)
@@ -120,7 +120,7 @@ class TestNetworkXBackend(unittest.TestCase):
         )
 
     def test_can_traverse_directed_graph(self):
-        G = Graph(backend=NetworkXBackend(directed=True))
+        G = Graph(backend=SQLBackend(directed=True))
         nxG = nx.DiGraph()
         md = dict(k="B")
         G.nx.add_edge("A", "B", **md)

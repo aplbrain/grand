@@ -1,7 +1,7 @@
 from typing import Hashable, Generator, List, Tuple
-import networkx as nx
 
-# from python_cypher.python_cypher import python_cypher
+import networkx as nx
+from networkx.classes.reportviews import NodeView
 
 
 class NetworkXDialect(nx.Graph):
@@ -16,8 +16,9 @@ class NetworkXDialect(nx.Graph):
     def add_node(self, name: Hashable, **kwargs):
         return self.parent.backend.add_node(name, kwargs)
 
-    def nodes(self, data: bool = False):
-        return self.parent.backend.all_nodes_as_generator(include_metadata=data)
+    # @property
+    # def nodes(self):
+    #     return NodeView(self)
 
     def add_edge(self, u: Hashable, v: Hashable, **kwargs):
         return self.parent.backend.add_edge(u, v, kwargs)
@@ -30,21 +31,31 @@ class NetworkXDialect(nx.Graph):
 
     @property
     def _node(self):
-        return self.nodes()
+        return {
+            n: metadata
+            for n, metadata in self.parent.backend.all_nodes_as_generator(
+                include_metadata=True
+            )
+        }
 
     @property
     def _adj(self):
         # TODO: This is very inefficient for over-the-wire Backends.
         return {
-            node: {neighbor: {} for neighbor in self.neighbors(node)}
+            node: {
+                neighbor: metadata
+                for neighbor, metadata in self.parent.backend.get_node_neighbors(
+                    node, include_metadata=True
+                ).items()
+            }
             for node in self.nodes()
         }
         # return self.nodes()
 
-    def __getitem__(self, key):
-        if not isinstance(key, (tuple, list)):
-            return self.parent.backend.get_node_by_id(key)
-        return self.parent.backend.get_edge_by_id(*key)
+    # def __getitem__(self, key):
+    #     if not isinstance(key, (tuple, list)):
+    #         return self.parent.backend.get_node_by_id(key)
+    #     return self.parent.backend.get_edge_by_id(*key)
 
 
 class IGraphDialect(nx.Graph):

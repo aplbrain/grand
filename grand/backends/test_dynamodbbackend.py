@@ -18,29 +18,39 @@ class TestDynamoDBBackend(unittest.TestCase):
 
     def test_can_add_node(self):
         G = Graph(backend=DynamoDBBackend())
+        nxG = nx.Graph()
         G.nx.add_node("A", k="v")
-        self.assertEqual(len(G.nx.nodes()), 1)
+        nxG.add_node("A", k="v")
+        self.assertEqual(len(G.nx.nodes()), len(nxG.nodes()))
         G.nx.add_node("B", k="v")
-        self.assertEqual(len(G.nx.nodes()), 2)
+        nxG.add_node("B", k="v")
+        self.assertEqual(len(G.nx.nodes()), len(nxG.nodes()))
 
     def test_can_add_edge(self):
         G = Graph(backend=DynamoDBBackend())
+        nxG = nx.Graph()
         G.nx.add_edge("A", "B")
-        self.assertEqual(len(G.nx.edges()), 1)
+        nxG.add_edge("A", "B")
+        self.assertEqual(len(G.nx.edges()), len(nxG.edges()))
         G.nx.add_edge("A", "B")
-        self.assertEqual(len(G.nx.edges()), 1)
+        nxG.add_edge("A", "B")
+        self.assertEqual(len(G.nx.edges()), len(nxG.edges()))
 
     def test_can_get_node(self):
         G = Graph(backend=DynamoDBBackend())
+        nxG = nx.Graph()
         md = dict(k="B")
         G.nx.add_node("A", **md)
-        self.assertEqual(G.nx["A"], md)
+        nxG.add_node("A", **md)
+        self.assertEqual(G.nx.nodes["A"], nxG.nodes["A"])
 
     def test_can_get_edge(self):
         G = Graph(backend=DynamoDBBackend())
+        nxG = nx.Graph()
         md = dict(k="B")
         G.nx.add_edge("A", "B", **md)
-        self.assertEqual(G.nx["A", "B"], md)
+        nxG.add_edge("A", "B", **md)
+        self.assertEqual(G.nx.get_edge_data("A", "B"), nxG.get_edge_data("A", "B"))
 
     def test_can_get_neighbors(self):
         G = Graph(backend=DynamoDBBackend())
@@ -84,8 +94,6 @@ class TestDynamoDBBackend(unittest.TestCase):
         self.assertEqual(G.nx._adj, nxG._adj)
         G.nx.add_edge("A", "B")
         nxG.add_edge("A", "B")
-        print(G.nx.nodes())
-        print(nxG.nodes())
         self.assertEqual(G.nx._adj, nxG._adj)
 
     def test_can_traverse_undirected_graph(self):

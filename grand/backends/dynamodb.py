@@ -169,7 +169,10 @@ class DynamoDBBackend(Backend):
 
         """
         return [
-            (node[self._primary_key], node)
+            (
+                node[self._primary_key],
+                {k: v for k, v in node.items() if k not in [self._primary_key]},
+            )
             if include_metadata
             else node[self._primary_key]
             for node in self._scan_table(self._node_table)
@@ -282,7 +285,9 @@ class DynamoDBBackend(Backend):
         item.pop(self._edge_target_key)
         return item
 
-    def get_node_neighbors(self, u: Hashable) -> Generator:
+    def get_node_neighbors(
+        self, u: Hashable, include_metadata: bool = False
+    ) -> Generator:
         """
         Get a generator of all downstream nodes from this node.
 
@@ -295,35 +300,43 @@ class DynamoDBBackend(Backend):
         """
         if self._directed:
             # Return only edges for which `u` is the source
-            return iter(
-                [
-                    node[self._edge_target_key]
-                    for node in self._scan_table(
-                        self._edge_table,
-                        {
-                            "FilterExpression": Key(self._primary_key).begins_with(
-                                f"__{u}__"
-                            ),
-                        },
-                    )
-                ]
+            res = self._scan_table(
+                self._edge_table,
+                {"FilterExpression": Key(self._primary_key).begins_with(f"__{u}__"),},
             )
+
+        else:
+            res = self._scan_table(
+                self._edge_table,
+                {
+                    "FilterExpression": (
+                        Key(self._edge_source_key).eq(u)
+                        | Key(self._edge_target_key).eq(u)
+                    ),
+                },
+            )
+
+        if include_metadata:
+            results = {}
+            for item in res:
+                key = (
+                    item[self._edge_source_key]
+                    if item[self._edge_source_key] != u
+                    else item[self._edge_target_key]
+                )
+                item.pop(self._primary_key)
+                item.pop(self._edge_source_key)
+                item.pop(self._edge_target_key)
+                results[key] = item
+            return results
         return iter(
             [
                 (
                     edge[self._edge_source_key]
-                    if print(edge) or edge[self._edge_source_key] != u
+                    if edge[self._edge_source_key] != u
                     else edge[self._edge_target_key]
                 )
-                for edge in self._scan_table(
-                    self._edge_table,
-                    {
-                        "FilterExpression": (
-                            Key(self._edge_source_key).eq(u)
-                            | Key(self._edge_target_key).eq(u)
-                        ),
-                    },
-                )
+                for edge in res
             ]
         )
 
