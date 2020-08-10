@@ -5,7 +5,7 @@ _Grand_ is a Rosetta Stone of graph technologies.
 ## Example use-cases
 
 -   True-serverless graph databases using DynamoDB\*
--   Pretend NetworkX is Neo4j and use Cypher to query a graph in memory
+-   Query a host graph in SQL for subgraph isomorphisms with DotMotif
 
 > \* [Neptune is not true-serverless.](docs/What-About-Neptune.md)
 
@@ -46,26 +46,40 @@ assert len(G.nx.nodes()) == 6
 assert len(G.igraph.vs) == 6
 ```
 
+You can also use DotMotif to query graphs in Grand-DynamoDB graph format:
+
+```python
+import grand
+
+G = grand.Graph()
+
+# Start in networkx:
+G.nx.add_edge("1", "2")
+G.nx.add_edge("2", "3")
+G.nx.add_edge("3", "1")
+G.nx.add_edge("3", "4")
+
+# Count motifs with DotMotif:
+assert G.dm.count("A -> B; B -> C; C -> A") == 6
+```
+
 ## Current Support
 
 <table><tr>
 <th>✅ = Fully Implemented</th>
 <th>🤔 = In Progress</th>
-</th>🔴 = Unsupported</th>
+<th>🔴 = Unsupported</th>
 </tr></table>
 
 | Dialect           | Description & Notes                            | Status |
 | ----------------- | ---------------------------------------------- | ------ |
+| `CypherDialect`   | Cypher syntax queries                          | 🔴     |
+| `DotMotifDialect` | DotMotif subgraph isomorphisms                 | ✅     |
+| `IGraphDialect`   | Python-IGraph interface for graph manipulation | 🤔     |
 | `NetworkXDialect` | NetworkX-like interface for graph manipulation | ✅     |
-| `IGraphDialect`   | Python-IGraph interface for graph manipulation | ✅     |
-| `DotMotifDialect` | DotMotif subgraph isomorphisms                 | 🤔     |
 
 | Backend           | Description & Notes                                 | Status |
 | ----------------- | --------------------------------------------------- | ------ |
-| `NetworkXBackend` | A NetworkX graph, in memory                         | ✅     |
 | `DynamoDBBackend` | A graph stored in two sister tables in AWS DynamoDB | ✅     |
+| `NetworkXBackend` | A NetworkX graph, in memory                         | ✅     |
 | `SQLBackend`      | A graph stored in two SQL-queryable sister tables   | ✅     |
-
-```
-
-```
