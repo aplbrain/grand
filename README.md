@@ -7,7 +7,7 @@ _Grand_ is the Rosetta Stone of graph technologies.
 -   True-serverless graph databases using DynamoDB\*
 -   Pretend NetworkX is Neo4j and use Cypher to query a graph in memory
 
-> \* Neptune will not be a true-serverless database until you can pay for data IO only. (Right now, you still need to pay for the virtual-machine CPU hours you're going to spend.)
+> \* [Neptune is not true-serverless.](docs/What-About-Neptune.md)
 
 ## Why it's a big deal
 
