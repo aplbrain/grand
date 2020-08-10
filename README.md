@@ -31,12 +31,20 @@ assert len(G.nx.nodes()) == 2
 
 ## Current Support
 
-| Dialect           | Description & Notes                            |
-| ----------------- | ---------------------------------------------- |
-| `NetworkXDialect` | NetworkX-like interface for graph manipulation |
-| `IGraphDialect`   | Python-IGraph interface for graph manipulation |
+<table><tr>
+<th>✅ = Fully Implemented</th>
+<th>🤔 = In Progress</th>
+</th>🔴 = Unsupported</th>
+</tr></table>
 
-| Backend           | Description & Notes                                 |
-| ----------------- | --------------------------------------------------- |
-| `NetworkXBackend` | A NetworkX graph, in memory                         |
-| `DynamoDBBackend` | A graph stored in two sister tables in AWS DynamoDB |
+| Dialect           | Description & Notes                            | Status |
+| ----------------- | ---------------------------------------------- | ------ |
+| `NetworkXDialect` | NetworkX-like interface for graph manipulation | ✅     |
+| `IGraphDialect`   | Python-IGraph interface for graph manipulation | ✅     |
+| `DotMotifDialect` | DotMotif subgraph isomorphisms                 | 🤔     |
+
+| Backend           | Description & Notes                                 | Status |
+| ----------------- | --------------------------------------------------- | ------ |
+| `NetworkXBackend` | A NetworkX graph, in memory                         | ✅     |
+| `DynamoDBBackend` | A graph stored in two sister tables in AWS DynamoDB | ✅     |
+| `DynamoDBBackend` | A graph stored in two sister tables in AWS DynamoDB | ✅     |
