@@ -5,6 +5,13 @@ A NetworkXDialect provides a networkx-like interface for graph manipulation
 
 
 
+## *Class* `IGraphDialect(nx.Graph)`
+
+
+An IGraphDialect provides a python-igraph-like interface
+
+
+
 ## *Function* `query(self, query_text: str) -> any`
 
 

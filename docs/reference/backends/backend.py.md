@@ -61,6 +61,18 @@ Get a generator of all of the nodes in this graph.
 
 
 
+## *Function* `has_node(self, u: Hashable) -> bool`
+
+
+Return true if the node exists in the graph.
+
+### Arguments
+> - **u** (`Hashable`: `None`): The ID of the node to check
+
+### Returns
+> - **bool** (`None`: `None`): True if the node exists
+
+
 ## *Function* `add_edge(self, u: Hashable, v: Hashable, metadata: dict)`
 
 
@@ -102,4 +114,17 @@ Get an edge by its source and target IDs.
 
 ### Returns
 > - **dict** (`None`: `None`): Metadata associated with this edge
+
+
+
+## *Function* `get_node_neighbors(self, u: Hashable) -> Generator`
+
+
+Get a generator of all downstream nodes from this node.
+
+### Arguments
+> - **u** (`Hashable`: `None`): The source node ID
+
+### Returns
+    Generator
 

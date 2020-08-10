@@ -1,17 +1,7 @@
-## *Function* `_dynamo_table_exists(table_name: str, client: boto3.client)`
+## *Class* `SQLBackend(Backend)`
 
 
-Check to see if the DynamoDB table already exists.
-
-### Returns
-> - **bool** (`None`: `None`): Whether table exists
-
-
-
-## *Class* `DynamoDBBackend(Backend)`
-
-
-A graph datastore that uses DynamoDB for persistance and queries.
+A graph datastore that uses a SQL-like store for persistance and queries.
 
 
 
