@@ -21,12 +21,29 @@ import grand
 G = grand.Graph(backend=grand.DynamoDBBackend())
 
 G.nx.add_node("Jordan", type="Person")
-G.nx.add_node("Steelblue", type="Color")
+G.nx.add_node("DotMotif", type="Project")
 
-G.nx.add_edge("Jordan", "Steelblue", type="FavoriteColor")
+G.nx.add_edge("Jordan", "DotMotif", type="Created")
 
 assert len(G.nx.edges()) == 1
 assert len(G.nx.nodes()) == 2
+```
+
+It doesn't stop there. If you like the way IGraph handles anonymous node insertion (ugh) but you want to handle the graph using regular NetworkX syntax, use a `IGraphDialect` and then switch to a `NetworkXDialect` halfway through:
+
+```python
+import grand
+
+G = grand.Graph()
+
+# Start in igraph:
+G.igraph.add_vertices(6)
+
+# And switch to networkx:
+assert len(G.nx.nodes()) == 6
+
+# And back to igraph!
+assert len(G.igraph.vs) == 6
 ```
 
 ## Current Support
@@ -48,3 +65,7 @@ assert len(G.nx.nodes()) == 2
 | `NetworkXBackend` | A NetworkX graph, in memory                         | ✅     |
 | `DynamoDBBackend` | A graph stored in two sister tables in AWS DynamoDB | ✅     |
 | `DynamoDBBackend` | A graph stored in two sister tables in AWS DynamoDB | ✅     |
+
+```
+
+```
