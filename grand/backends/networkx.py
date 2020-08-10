@@ -106,3 +106,15 @@ class NetworkXBackend(Backend):
         """
         return self._nx_graph.edges[u, v]
 
+    def get_node_neighbors(self, u: Hashable) -> Generator:
+        """
+        Get a generator of all downstream nodes from this node.
+
+        Arguments:
+            u (Hashable): The source node ID
+
+        Returns:
+            Generator
+
+        """
+        return self._nx_graph.neighbors(u)

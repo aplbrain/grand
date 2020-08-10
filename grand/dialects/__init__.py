@@ -1,6 +1,8 @@
 from typing import Hashable, Generator
 import networkx as nx
 
+# from python_cypher.python_cypher import python_cypher
+
 
 class NetworkXDialect(nx.Graph):
     """
@@ -23,6 +25,22 @@ class NetworkXDialect(nx.Graph):
     def edges(self, data: bool = False):
         return self.parent.backend.all_edges_as_generator(include_metadata=data)
 
+    def neighbors(self, u: Hashable) -> Generator:
+        return self.parent.backend.get_node_neighbors(u)
+
+    @property
+    def _node(self):
+        return self.nodes()
+
+    @property
+    def _adj(self):
+        # TODO: This is very inefficient for over-the-wire Backends.
+        return {
+            node: {neighbor: {} for neighbor in self.neighbors(node)}
+            for node in self.nodes()
+        }
+        # return self.nodes()
+
     def __getitem__(self, key):
         if not isinstance(key, (tuple, list)):
             return self.parent.backend.get_node_by_id(key)
@@ -32,6 +50,7 @@ class NetworkXDialect(nx.Graph):
 class CypherDialect:
     def __init__(self, parent: "Graph") -> None:
         self.parent = parent
+        self._nxlike = NetworkXDialect(parent=parent)
 
     def query(self, query_text: str) -> any:
         """
@@ -45,3 +64,4 @@ class CypherDialect:
 
         """
         raise NotImplementedError()
+

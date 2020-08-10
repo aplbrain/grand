@@ -2,6 +2,7 @@ from typing import Hashable, Generator, Optional
 import time
 
 import boto3
+from boto3.dynamodb.conditions import Key
 
 from .backend import Backend
 
@@ -49,6 +50,7 @@ class DynamoDBBackend(Backend):
 
     def __init__(
         self,
+        directed: bool = False,
         node_table_name: str = None,
         edge_table_name: str = None,
         dynamodb_url: str = _DEFAULT_DYNAMODB_URL,
@@ -68,6 +70,7 @@ class DynamoDBBackend(Backend):
                 tables. Note that this key cannot exist in your metadata dicts.
 
         """
+        self._directed = directed
         self._node_table_name = node_table_name or "grand_Nodes"
         self._edge_table_name = edge_table_name or "grand_Edges"
 
@@ -139,11 +142,11 @@ class DynamoDBBackend(Backend):
 
         return response
 
-    def _depaginate_table(self, table):
+    def _scan_table(self, table, scan_kwargs: dict = None):
         done = False
         start_key = None
         results = []
-        scan_kwargs = {}
+        scan_kwargs = scan_kwargs or {}
         while not done:
             if start_key:
                 scan_kwargs["ExclusiveStartKey"] = start_key
@@ -165,7 +168,28 @@ class DynamoDBBackend(Backend):
             Generator: A generator of all nodes (arbitrary sort)
 
         """
-        return self._depaginate_table(self._node_table)
+        return [
+            (node[self._primary_key], node)
+            if include_metadata
+            else node[self._primary_key]
+            for node in self._scan_table(self._node_table)
+        ]
+
+    def has_node(self, u: Hashable) -> bool:
+        """
+        Return true if the node exists in the graph.
+
+        Arguments:
+            u (Hashable): The ID of the node to check
+
+        Returns:
+            bool: True if the node exists
+        """
+        try:
+            self._node_table.get_item(u)
+            return True
+        except:
+            return False
 
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
         """
@@ -194,6 +218,12 @@ class DynamoDBBackend(Backend):
                 f"'{self._edge_target_key}' should not be in metadata. I need that for PK!"
             )
         metadata[self._edge_target_key] = v
+
+        if not self.has_node(u):
+            self._node_table.put_item(Item={self._primary_key: u})
+        if not self.has_node(v):
+            self._node_table.put_item(Item={self._primary_key: v})
+
         response = self._edge_table.put_item(Item=metadata)
 
         return response
@@ -209,7 +239,12 @@ class DynamoDBBackend(Backend):
             Generator: A generator of all edges (arbitrary sort)
 
         """
-        return self._depaginate_table(self._edge_table)
+        return [
+            (edge[self._edge_source_key], edge[self._edge_target_key], edge)
+            if include_metadata
+            else (edge[self._edge_source_key], edge[self._edge_target_key])
+            for edge in self._scan_table(self._edge_table)
+        ]
 
     def get_node_by_id(self, node_name: Hashable):
         """
@@ -223,7 +258,6 @@ class DynamoDBBackend(Backend):
 
         """
         response = self._node_table.get_item(Key={self._primary_key: node_name})
-        print(response)
 
         item = response["Item"]
         item.pop(self._primary_key)
@@ -242,9 +276,54 @@ class DynamoDBBackend(Backend):
 
         """
         response = self._edge_table.get_item(Key={self._primary_key: f"__{u}__{v}"})
-        print(response)
         item = response["Item"]
         item.pop(self._primary_key)
         item.pop(self._edge_source_key)
         item.pop(self._edge_target_key)
         return item
+
+    def get_node_neighbors(self, u: Hashable) -> Generator:
+        """
+        Get a generator of all downstream nodes from this node.
+
+        Arguments:
+            u (Hashable): The source node ID
+
+        Returns:
+            Generator
+
+        """
+        if self._directed:
+            # Return only edges for which `u` is the source
+            return iter(
+                [
+                    node[self._edge_target_key]
+                    for node in self._scan_table(
+                        self._edge_table,
+                        {
+                            "FilterExpression": Key(self._primary_key).begins_with(
+                                f"__{u}__"
+                            ),
+                        },
+                    )
+                ]
+            )
+        return iter(
+            [
+                (
+                    edge[self._edge_source_key]
+                    if print(edge) or edge[self._edge_source_key] != u
+                    else edge[self._edge_target_key]
+                )
+                for edge in self._scan_table(
+                    self._edge_table,
+                    {
+                        "FilterExpression": (
+                            Key(self._edge_source_key).eq(u)
+                            | Key(self._edge_target_key).eq(u)
+                        ),
+                    },
+                )
+            ]
+        )
+

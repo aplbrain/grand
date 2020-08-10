@@ -64,6 +64,18 @@ class Backend(abc.ABC):
         """
         ...
 
+    def has_node(self, u: Hashable) -> bool:
+        """
+        Return true if the node exists in the graph.
+
+        Arguments:
+            u (Hashable): The ID of the node to check
+
+        Returns:
+            bool: True if the node exists
+        """
+        ...
+
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
         """
         Add a new edge to the graph between two nodes.
@@ -109,3 +121,15 @@ class Backend(abc.ABC):
         """
         ...
 
+    def get_node_neighbors(self, u: Hashable) -> Generator:
+        """
+        Get a generator of all downstream nodes from this node.
+
+        Arguments:
+            u (Hashable): The source node ID
+
+        Returns:
+            Generator
+
+        """
+        ...

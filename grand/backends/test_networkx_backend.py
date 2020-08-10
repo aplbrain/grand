@@ -1,5 +1,7 @@
 import unittest
 
+import networkx as nx
+
 from . import NetworkXBackend
 from .. import Graph
 
@@ -33,4 +35,96 @@ class TestNetworkxBackend(unittest.TestCase):
         md = dict(k="B")
         G.nx.add_edge("A", "B", **md)
         self.assertEqual(G.nx["A", "B"], md)
+
+    def test_can_get_neighbors(self):
+        G = Graph(backend=NetworkXBackend())
+        nxG = nx.Graph()
+        G.nx.add_edge("A", "B")
+        nxG.add_edge("A", "B")
+        self.assertEqual(
+            sorted([i for i in G.nx.neighbors("A")]),
+            sorted([i for i in nxG.neighbors("A")]),
+        )
+        self.assertEqual(
+            sorted([i for i in G.nx.neighbors("B")]),
+            sorted([i for i in nxG.neighbors("B")]),
+        )
+        G.nx.add_edge("A", "C")
+        nxG.add_edge("A", "C")
+        self.assertEqual(
+            sorted([i for i in G.nx.neighbors("A")]),
+            sorted([i for i in nxG.neighbors("A")]),
+        )
+        self.assertEqual(
+            sorted([i for i in G.nx.neighbors("B")]),
+            sorted([i for i in nxG.neighbors("B")]),
+        )
+        self.assertEqual(
+            sorted([i for i in G.nx.neighbors("C")]),
+            sorted([i for i in nxG.neighbors("C")]),
+        )
+
+    def test_undirected_adj(self):
+        G = Graph(backend=NetworkXBackend())
+        nxG = nx.Graph()
+        self.assertEqual(G.nx._adj, nxG._adj)
+        G.nx.add_edge("A", "B")
+        nxG.add_edge("A", "B")
+        self.assertEqual(G.nx._adj, nxG._adj)
+
+    def test_directed_adj(self):
+        G = Graph(backend=NetworkXBackend(directed=True))
+        nxG = nx.DiGraph()
+        self.assertEqual(G.nx._adj, nxG._adj)
+        G.nx.add_edge("A", "B")
+        nxG.add_edge("A", "B")
+        print(G.nx.nodes())
+        print(nxG.nodes())
+        self.assertEqual(G.nx._adj, nxG._adj)
+
+    def test_can_traverse_undirected_graph(self):
+        G = Graph(backend=NetworkXBackend())
+        nxG = nx.Graph()
+        md = dict(k="B")
+        G.nx.add_edge("A", "B", **md)
+        nxG.add_edge("A", "B", **md)
+        self.assertEqual(
+            dict(nx.bfs_successors(G.nx, "A")), dict(nx.bfs_successors(nxG, "A"))
+        )
+        G.nx.add_edge("B", "C", **md)
+        nxG.add_edge("B", "C", **md)
+        self.assertEqual(
+            dict(nx.bfs_successors(G.nx, "A")), dict(nx.bfs_successors(nxG, "A"))
+        )
+        G.nx.add_edge("B", "D", **md)
+        nxG.add_edge("B", "D", **md)
+        self.assertEqual(
+            dict(nx.bfs_successors(G.nx, "A")), dict(nx.bfs_successors(nxG, "A"))
+        )
+        self.assertEqual(
+            dict(nx.bfs_successors(G.nx, "C")), dict(nx.bfs_successors(nxG, "C"))
+        )
+
+    def test_can_traverse_directed_graph(self):
+        G = Graph(backend=NetworkXBackend(directed=True))
+        nxG = nx.DiGraph()
+        md = dict(k="B")
+        G.nx.add_edge("A", "B", **md)
+        nxG.add_edge("A", "B", **md)
+        self.assertEqual(
+            dict(nx.bfs_successors(G.nx, "A")), dict(nx.bfs_successors(nxG, "A"))
+        )
+        G.nx.add_edge("B", "C", **md)
+        nxG.add_edge("B", "C", **md)
+        self.assertEqual(
+            dict(nx.bfs_successors(G.nx, "A")), dict(nx.bfs_successors(nxG, "A"))
+        )
+        G.nx.add_edge("B", "D", **md)
+        nxG.add_edge("B", "D", **md)
+        self.assertEqual(
+            dict(nx.bfs_successors(G.nx, "A")), dict(nx.bfs_successors(nxG, "A"))
+        )
+        self.assertEqual(
+            dict(nx.bfs_successors(G.nx, "C")), dict(nx.bfs_successors(nxG, "C"))
+        )
 
