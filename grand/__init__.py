@@ -12,7 +12,7 @@ from typing import Hashable, Generator
 import networkx as nx
 
 from .backends import Backend, NetworkXBackend
-from .dialects import NetworkXDialect, CypherDialect
+from .dialects import NetworkXDialect, IGraphDialect, CypherDialect
 
 
 _DEFAULT_BACKEND = NetworkXBackend
@@ -40,6 +40,7 @@ class Graph:
 
         # Attach dialects:
         self.nx = NetworkXDialect(self)
+        self.igraph = IGraphDialect(self)
 
     def save(self, filename: str) -> str:
         raise NotImplementedError()

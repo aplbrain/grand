@@ -1,4 +1,4 @@
-from typing import Hashable, Generator
+from typing import Hashable, Generator, List, Tuple
 import networkx as nx
 
 # from python_cypher.python_cypher import python_cypher
@@ -45,6 +45,40 @@ class NetworkXDialect(nx.Graph):
         if not isinstance(key, (tuple, list)):
             return self.parent.backend.get_node_by_id(key)
         return self.parent.backend.get_edge_by_id(*key)
+
+
+class IGraphDialect(nx.Graph):
+    """
+    An IGraphDialect provides a python-igraph-like interface
+
+    """
+
+    def __init__(self, parent: "Graph"):
+        self.parent = parent
+
+    def add_vertices(self, num_verts: int):
+        old_max = len(self.vs)
+        for new_v_index in range(num_verts):
+            return self.parent.backend.add_node(new_v_index + old_max, {})
+
+    @property
+    def vs(self):
+        return [
+            i for i in self.parent.backend.all_nodes_as_generator(include_metadata=True)
+        ]
+
+    @property
+    def es(self):
+        return [
+            i for i in self.parent.backend.all_edges_as_generator(include_metadata=True)
+        ]
+
+    def add_edges(self, edgelist: List[Tuple[Hashable, Hashable]]):
+        for (u, v) in edgelist:
+            return self.parent.backend.add_edge(u, v, {})
+
+    def get_edgelist(self):
+        return self.parent.backend.all_edges_as_generator(include_metadata=False)
 
 
 class CypherDialect:

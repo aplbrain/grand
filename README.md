@@ -28,3 +28,15 @@ G.nx.add_edge("Jordan", "Steelblue", type="FavoriteColor")
 assert len(G.nx.edges()) == 1
 assert len(G.nx.nodes()) == 2
 ```
+
+## Current Support
+
+| Dialect           | Description & Notes                            |
+| ----------------- | ---------------------------------------------- |
+| `NetworkXDialect` | NetworkX-like interface for graph manipulation |
+| `IGraphDialect`   | Python-IGraph interface for graph manipulation |
+
+| Backend           | Description & Notes                                 |
+| ----------------- | --------------------------------------------------- |
+| `NetworkXBackend` | A NetworkX graph, in memory                         |
+| `DynamoDBBackend` | A graph stored in two sister tables in AWS DynamoDB |
