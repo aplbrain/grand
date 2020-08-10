@@ -19,6 +19,20 @@ class NetworkXBackend(Backend):
 
         """
         self._nx_graph = nx.DiGraph() if directed else nx.Graph()
+        self._directed = directed
+
+    def is_directed(self) -> bool:
+        """
+        Return True if the backend graph is directed.
+
+        Arguments:
+            None
+
+        Returns:
+            bool: True if the backend graph is directed.
+
+        """
+        return self._directed
 
     def add_node(self, node_name: Hashable, metadata: dict):
         """
@@ -122,3 +136,20 @@ class NetworkXBackend(Backend):
         if include_metadata:
             return self._nx_graph[u]
         return self._nx_graph.neighbors(u)
+
+    def get_node_predecessors(
+        self, u: Hashable, include_metadata: bool = False
+    ) -> Generator:
+        """
+        Get a generator of all downstream nodes from this node.
+
+        Arguments:
+            u (Hashable): The source node ID
+
+        Returns:
+            Generator
+
+        """
+        if include_metadata:
+            return self._nx_graph.pred[u]
+        return self._nx_graph.predecessors(u)

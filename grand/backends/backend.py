@@ -23,6 +23,19 @@ class Backend(abc.ABC):
         """
         ...
 
+    def is_directed(self) -> bool:
+        """
+        Return True if the backend graph is directed.
+
+        Arguments:
+            None
+
+        Returns:
+            bool: True if the backend graph is directed.
+
+        """
+        ...
+
     def add_node(self, node_name: Hashable, metadata: dict):
         """
         Add a new node to the graph.

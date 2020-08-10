@@ -11,38 +11,6 @@ _DEFAULT_SQL_URL = ""
 _DEFAULT_SQL_STR_LEN = 64
 
 
-# def _sql_table_exists(table_name: str, client: boto3.client):
-#     """
-#     Check to see if the DynamoDB table already exists.
-
-#     Returns:
-#         bool: Whether table exists
-
-#     """
-#     existing_tables = client.list_tables()["TableNames"]
-#     return table_name in existing_tables
-
-
-# def _create_dynamo_table(
-#     table_name: str, primary_key: str, client, read_write_units: Optional[int] = None,
-# ):
-#     if read_write_units is not None:
-#         raise NotImplementedError("Non-on-demand billing is not currently supported.")
-
-#     return client.create_table(
-#         TableName=table_name,
-#         KeySchema=[
-#             {"AttributeName": primary_key, "KeyType": "HASH"},  # Partition key
-#             # {"AttributeName": "title", "KeyType": "RANGE"},  # Sort key
-#         ],
-#         AttributeDefinitions=[
-#             {"AttributeName": primary_key, "AttributeType": "S"},
-#             # {"AttributeName": "title", "AttributeType": "S"},
-#         ],
-#         BillingMode="PAY_PER_REQUEST",
-#     )
-
-
 class SQLBackend(Backend):
     """
     A graph datastore that uses a SQL-like store for persistance and queries.
@@ -127,6 +95,19 @@ class SQLBackend(Backend):
                 autoload=True,
                 autoload_with=self._engine,
             )
+
+    def is_directed(self) -> bool:
+        """
+        Return True if the backend graph is directed.
+
+        Arguments:
+            None
+
+        Returns:
+            bool: True if the backend graph is directed.
+
+        """
+        return self._directed
 
     def teardown(self, yes_i_am_sure: bool = False):
         """
@@ -328,6 +309,56 @@ class SQLBackend(Backend):
                     or_(
                         (self._edge_table.c[self._edge_source_key] == u),
                         (self._edge_table.c[self._edge_target_key] == u),
+                    )
+                )
+            ).fetchall()
+
+        if include_metadata:
+            return {
+                (
+                    r[self._edge_source_key]
+                    if r[self._edge_source_key] != u
+                    else r[self._edge_target_key]
+                ): r["_metadata"]
+                for r in res
+            }
+
+        return iter(
+            [
+                (
+                    r[self._edge_source_key]
+                    if r[self._edge_source_key] != u
+                    else r[self._edge_target_key]
+                )
+                for r in res
+            ]
+        )
+
+    def get_node_predecessors(
+        self, u: Hashable, include_metadata: bool = False
+    ) -> Generator:
+        """
+        Get a generator of all upstream nodes from this node.
+
+        Arguments:
+            u (Hashable): The source node ID
+
+        Returns:
+            Generator
+
+        """
+        if self._directed:
+            res = self._connection.execute(
+                self._edge_table.select().where(
+                    self._edge_table.c[self._edge_target_key] == u
+                )
+            ).fetchall()
+        else:
+            res = self._connection.execute(
+                self._edge_table.select().where(
+                    or_(
+                        (self._edge_table.c[self._edge_target_key] == u),
+                        (self._edge_table.c[self._edge_source_key] == u),
                     )
                 )
             ).fetchall()

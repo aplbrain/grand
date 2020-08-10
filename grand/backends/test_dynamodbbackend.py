@@ -142,3 +142,38 @@ class TestDynamoDBBackend(unittest.TestCase):
             dict(nx.bfs_successors(G.nx, "C")), dict(nx.bfs_successors(nxG, "C"))
         )
 
+    def test_subgraph_isomorphism_undirected(self):
+        G = Graph(backend=DynamoDBBackend(directed=False))
+        nxG = nx.Graph()
+
+        G.nx.add_edge("A", "B")
+        nxG.add_edge("A", "B")
+        G.nx.add_edge("B", "C")
+        nxG.add_edge("B", "C")
+        G.nx.add_edge("C", "A")
+        nxG.add_edge("C", "A")
+
+        from networkx.algorithms.isomorphism import GraphMatcher
+
+        self.assertEqual(
+            len([i for i in GraphMatcher(G.nx, G.nx).subgraph_monomorphisms_iter()]),
+            len([i for i in GraphMatcher(nxG, nxG).subgraph_monomorphisms_iter()]),
+        )
+
+    def test_subgraph_isomorphism_directed(self):
+        G = Graph(backend=DynamoDBBackend(directed=True))
+        nxG = nx.DiGraph()
+
+        G.nx.add_edge("A", "B")
+        nxG.add_edge("A", "B")
+        G.nx.add_edge("B", "C")
+        nxG.add_edge("B", "C")
+        G.nx.add_edge("C", "A")
+        nxG.add_edge("C", "A")
+
+        from networkx.algorithms.isomorphism import DiGraphMatcher
+
+        self.assertEqual(
+            len([i for i in DiGraphMatcher(G.nx, G.nx).subgraph_monomorphisms_iter()]),
+            len([i for i in DiGraphMatcher(nxG, nxG).subgraph_monomorphisms_iter()]),
+        )

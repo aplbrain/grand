@@ -114,6 +114,19 @@ class DynamoDBBackend(Backend):
         self._node_table = self._resource.Table(self._node_table_name)
         self._edge_table = self._resource.Table(self._edge_table_name)
 
+    def is_directed(self) -> bool:
+        """
+        Return True if the backend graph is directed.
+
+        Arguments:
+            None
+
+        Returns:
+            bool: True if the backend graph is directed.
+
+        """
+        return self._directed
+
     def teardown(self, yes_i_am_sure: bool = False):
         """
         Tear down this graph, deleting all evidence it once was here.
@@ -303,6 +316,61 @@ class DynamoDBBackend(Backend):
             res = self._scan_table(
                 self._edge_table,
                 {"FilterExpression": Key(self._primary_key).begins_with(f"__{u}__"),},
+            )
+
+        else:
+            res = self._scan_table(
+                self._edge_table,
+                {
+                    "FilterExpression": (
+                        Key(self._edge_source_key).eq(u)
+                        | Key(self._edge_target_key).eq(u)
+                    ),
+                },
+            )
+
+        if include_metadata:
+            results = {}
+            for item in res:
+                key = (
+                    item[self._edge_source_key]
+                    if item[self._edge_source_key] != u
+                    else item[self._edge_target_key]
+                )
+                item.pop(self._primary_key)
+                item.pop(self._edge_source_key)
+                item.pop(self._edge_target_key)
+                results[key] = item
+            return results
+        return iter(
+            [
+                (
+                    edge[self._edge_source_key]
+                    if edge[self._edge_source_key] != u
+                    else edge[self._edge_target_key]
+                )
+                for edge in res
+            ]
+        )
+
+    def get_node_predecessors(
+        self, u: Hashable, include_metadata: bool = False
+    ) -> Generator:
+        """
+        Get a generator of all upstream nodes from this node.
+
+        Arguments:
+            u (Hashable): The source node ID
+
+        Returns:
+            Generator
+
+        """
+        if self._directed:
+            # Return only edges for which `u` is the target
+            res = self._scan_table(
+                self._edge_table,
+                {"FilterExpression": Key(self._edge_target_key).eq(u),},
             )
 
         else:

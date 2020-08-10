@@ -1,7 +1,11 @@
-from typing import Hashable, Generator, List, Tuple
+from typing import Hashable, Generator, List, Tuple, Union
 
 import networkx as nx
+import pandas as pd
+
 from networkx.classes.reportviews import NodeView
+
+from dotmotif import dotmotif, NetworkXExecutor
 
 
 class NetworkXDialect(nx.Graph):
@@ -11,6 +15,16 @@ class NetworkXDialect(nx.Graph):
     """
 
     def __init__(self, parent: "Graph"):
+        """
+        Create a new dialect to query a backend with NetworkX syntax.
+
+        Arguments:
+            parent (Graph): The parent grand.Graph object
+
+        Returns:
+            None
+
+        """
         self.parent = parent
 
     def add_node(self, name: Hashable, **kwargs):
@@ -27,6 +41,12 @@ class NetworkXDialect(nx.Graph):
         return self.parent.backend.all_edges_as_generator(include_metadata=data)
 
     def neighbors(self, u: Hashable) -> Generator:
+        return self.parent.backend.get_node_neighbors(u)
+
+    def predecessors(self, u: Hashable) -> Generator:
+        return self.parent.backend.get_node_predecessors(u)
+
+    def successors(self, u: Hashable) -> Generator:
         return self.parent.backend.get_node_neighbors(u)
 
     @property
@@ -50,12 +70,19 @@ class NetworkXDialect(nx.Graph):
             }
             for node in self.nodes()
         }
-        # return self.nodes()
 
-    # def __getitem__(self, key):
-    #     if not isinstance(key, (tuple, list)):
-    #         return self.parent.backend.get_node_by_id(key)
-    #     return self.parent.backend.get_edge_by_id(*key)
+    @property
+    def pred(self):
+        # TODO: This is very inefficient for over-the-wire Backends.
+        return {
+            node: {
+                neighbor: metadata
+                for neighbor, metadata in self.parent.backend.get_node_predecessors(
+                    node, include_metadata=True
+                ).items()
+            }
+            for node in self.nodes()
+        }
 
 
 class IGraphDialect(nx.Graph):
@@ -65,6 +92,16 @@ class IGraphDialect(nx.Graph):
     """
 
     def __init__(self, parent: "Graph"):
+        """
+        Create a new dialect to query a backend with Python-IGraph syntax.
+
+        Arguments:
+            parent (Graph): The parent grand.Graph object
+
+        Returns:
+            None
+
+        """
         self.parent = parent
 
     def add_vertices(self, num_verts: int):
@@ -110,3 +147,65 @@ class CypherDialect:
         """
         raise NotImplementedError()
 
+
+class DotMotifDialect:
+    def __init__(self, parent: "Graph") -> None:
+        """
+        Create a new DotMotifDialect to query a backend with DotMotif syntax.
+
+        Arguments:
+            parent (Graph): The parent grand.Graph object
+
+        Returns:
+            None
+
+        """
+        self.parent = parent
+
+    def find(
+        self, motif: Union[str, dotmotif], exclude_automorphisms: bool = False
+    ) -> pd.DataFrame:
+        """
+        Find a motif using DotMotif syntax.
+
+        Arguments:
+            motif (Union[str, dotmotif.dotmotif]): A motif in dotmotif form or
+                a string in the DotMotif DSL.
+            exclude_automorphisms (bool: True): Whether to exclude motif
+                automorphisms from the results list
+
+        Returns:
+            pd.DataFrame: A DataFrame containing the results of the query
+
+        """
+        if isinstance(motif, str):
+            motif = dotmotif(
+                ignore_direction=(not self.parent.backend._directed),
+                exclude_automorphisms=exclude_automorphisms,
+            ).from_motif(motif)
+
+        return NetworkXExecutor(graph=self.parent.nx).find(motif)
+
+    def count(
+        self, motif: Union[str, dotmotif], exclude_automorphisms: bool = False
+    ) -> pd.DataFrame:
+        """
+        Count occurrences of a motif using DotMotif syntax.
+
+        Arguments:
+            motif (Union[str, dotmotif.dotmotif]): A motif in dotmotif form or
+                a string in the DotMotif DSL.
+            exclude_automorphisms (bool: True): Whether to exclude motif
+                automorphisms from the results list
+
+        Returns:
+            int: A count of results of the motif query
+
+        """
+        if isinstance(motif, str):
+            motif = dotmotif(
+                ignore_direction=(not self.parent.backend._directed),
+                exclude_automorphisms=exclude_automorphisms,
+            ).from_motif(motif)
+
+        return NetworkXExecutor(graph=self.parent.nx).count(motif)

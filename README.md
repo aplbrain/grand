@@ -1,6 +1,6 @@
 <div align=center><img src="docs/grand.png" width=400 /></div>
 
-_Grand_ is the Rosetta Stone of graph technologies.
+_Grand_ is a Rosetta Stone of graph technologies.
 
 ## Example use-cases
 
@@ -11,7 +11,7 @@ _Grand_ is the Rosetta Stone of graph technologies.
 
 ## Why it's a big deal
 
-_Grand_ is the Rosetta Stone of graph technologies. In short, a _Grand_ graph has a "Backend," which handles the nitty-gritty of talking to data on disk (or in the cloud), and an "Dialect", which is your preferred way of talking to a graph.
+_Grand_ is a Rosetta Stone of graph technologies. In short, a _Grand_ graph has a "Backend," which handles the nitty-gritty of talking to data on disk (or in the cloud), and an "Dialect", which is your preferred way of talking to a graph.
 
 For example, here's how you make a graph that is persisted in DynamoDB (the "Backend") but that you can talk to as though it's a `networkx.DiGraph` (the "Dialect"):
 
@@ -64,7 +64,7 @@ assert len(G.igraph.vs) == 6
 | ----------------- | --------------------------------------------------- | ------ |
 | `NetworkXBackend` | A NetworkX graph, in memory                         | ✅     |
 | `DynamoDBBackend` | A graph stored in two sister tables in AWS DynamoDB | ✅     |
-| `DynamoDBBackend` | A graph stored in two sister tables in AWS DynamoDB | ✅     |
+| `SQLBackend`      | A graph stored in two SQL-queryable sister tables   | ✅     |
 
 ```
 
