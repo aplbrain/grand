@@ -54,6 +54,8 @@ class DynamoDBBackend(Backend):
         node_table_name: str = None,
         edge_table_name: str = None,
         dynamodb_url: str = _DEFAULT_DYNAMODB_URL,
+        aws_access_key_id: str = "",
+        aws_secret_access_key: str = "",
         primary_key: str = "ID",
     ) -> None:
         """
@@ -81,14 +83,14 @@ class DynamoDBBackend(Backend):
         self._resource = boto3.resource(
             "dynamodb",
             endpoint_url=dynamodb_url,
-            aws_access_key_id="",
-            aws_secret_access_key="",
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
         )
         self._client = boto3.client(
             "dynamodb",
             endpoint_url=dynamodb_url,
-            aws_access_key_id="",
-            aws_secret_access_key="",
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
         )
 
         if not _dynamo_table_exists(self._node_table_name, self._client):
