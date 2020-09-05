@@ -1,4 +1,4 @@
-from typing import Hashable, Generator, Optional
+from typing import Hashable, Generator, Optional, Iterable
 import time
 
 import boto3
@@ -7,7 +7,7 @@ from boto3.dynamodb.conditions import Key
 from .backend import Backend
 
 
-_DEFAULT_DYNAMODB_URL = "http://localhost:8000"
+_DEFAULT_DYNAMODB_URL = "http://localhost:4566"
 
 
 def _dynamo_table_exists(table_name: str, client: boto3.client):
@@ -409,4 +409,19 @@ class DynamoDBBackend(Backend):
                 for edge in res
             ]
         )
+
+    def get_node_count(self) -> Iterable:
+        """
+        Get an integer count of the number of nodes in this graph.
+
+        Arguments:
+            None
+
+        Returns:
+            int: The count of nodes
+
+        """
+        return self._client.describe_table(TableName=self._node_table_name)["Table"][
+            "ItemCount"
+        ]
 

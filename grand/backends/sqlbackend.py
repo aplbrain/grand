@@ -1,9 +1,9 @@
-from typing import Hashable, Generator, Optional
+from typing import Hashable, Generator, Optional, Iterable
 import time
 
 import sqlalchemy
 from sqlalchemy.sql import select
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
 
 from .backend import Backend
 
@@ -219,7 +219,14 @@ class SQLBackend(Backend):
             Generator: A generator of all edges (arbitrary sort)
 
         """
-        return self._connection.execute(self._edge_table.select()).fetchall()
+        return iter(
+            [
+                (e.Source, e.Target, e._metadata)
+                if include_metadata
+                else (e.Source, e.Target)
+                for e in self._connection.execute(self._edge_table.select()).fetchall()
+            ]
+        )
 
     def get_node_by_id(self, node_name: Hashable):
         """
@@ -232,11 +239,15 @@ class SQLBackend(Backend):
             dict: The metadata associated with this node
 
         """
-        res = self._connection.execute(
-            self._node_table.select().where(
-                self._node_table.c[self._primary_key] == node_name
+        res = (
+            self._connection.execute(
+                self._node_table.select().where(
+                    self._node_table.c[self._primary_key] == node_name
+                )
             )
-        ).fetchone()
+            .fetchone()
+            ._metadata
+        )
         return res
 
     def get_edge_by_id(self, u: Hashable, v: Hashable):
@@ -383,4 +394,19 @@ class SQLBackend(Backend):
                 for r in res
             ]
         )
+
+    def get_node_count(self) -> Iterable:
+        """
+        Get an integer count of the number of nodes in this graph.
+
+        Arguments:
+            None
+
+        Returns:
+            int: The count of nodes
+
+        """
+        return self._connection.execute(
+            select([func.count()]).select_from(self._node_table)
+        ).scalar()
 

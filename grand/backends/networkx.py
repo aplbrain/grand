@@ -1,4 +1,4 @@
-from typing import Hashable, Generator
+from typing import Hashable, Generator, Iterable
 import boto3
 
 import networkx as nx
@@ -153,3 +153,17 @@ class NetworkXBackend(Backend):
         if include_metadata:
             return self._nx_graph.pred[u]
         return self._nx_graph.predecessors(u)
+
+    def get_node_count(self) -> Iterable:
+        """
+        Get an integer count of the number of nodes in this graph.
+
+        Arguments:
+            None
+
+        Returns:
+            int: The count of nodes
+
+        """
+        return len(self._nx_graph)
+

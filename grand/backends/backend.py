@@ -1,4 +1,4 @@
-from typing import Hashable, Generator
+from typing import Hashable, Generator, Iterable
 import abc
 
 
@@ -134,7 +134,14 @@ class Backend(abc.ABC):
         """
         ...
 
-    def get_node_neighbors(self, u: Hashable) -> Generator:
+    def get_node_successors(
+        self, u: Hashable, include_metadata: bool = False
+    ) -> Generator:
+        return self.get_node_neighbors(u, include_metadata)
+
+    def get_node_neighbors(
+        self, u: Hashable, include_metadata: bool = False
+    ) -> Generator:
         """
         Get a generator of all downstream nodes from this node.
 
@@ -146,3 +153,31 @@ class Backend(abc.ABC):
 
         """
         ...
+
+    def get_node_predecessors(
+        self, u: Hashable, include_metadata: bool = False
+    ) -> Generator:
+        """
+        Get a generator of all upstream nodes from this node.
+
+        Arguments:
+            u (Hashable): The source node ID
+
+        Returns:
+            Generator
+
+        """
+        ...
+
+    def get_node_count(self) -> Iterable:
+        """
+        Get an integer count of the number of nodes in this graph.
+
+        Arguments:
+            None
+
+        Returns:
+            int: The count of nodes
+
+        """
+        return len([i for i in self.all_nodes_as_generator()])

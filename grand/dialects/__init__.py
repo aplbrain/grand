@@ -4,6 +4,75 @@ import networkx as nx
 import pandas as pd
 
 from networkx.classes.reportviews import NodeView
+from networkx.classes.coreviews import AdjacencyView, AtlasView
+
+
+class _GrandAdjacencyView(AdjacencyView):
+
+    __slots__ = ("_parent", "_pred_or_succ")  # Still uses AtlasView slots names _atlas
+
+    def __init__(self, parent_nx_dialect: "NetworkXDialect", pred_or_succ: str):
+        self._parent = parent_nx_dialect.parent
+        self._pred_or_succ = pred_or_succ
+
+    def __getitem__(self, name):
+        if self._pred_or_succ == "pred":
+            return {
+                neighbor: metadata
+                for neighbor, metadata in self._parent.backend.get_node_predecessors(
+                    name, include_metadata=True
+                ).items()
+            }
+        elif self._pred_or_succ == "succ":
+            return {
+                neighbor: metadata
+                for neighbor, metadata in self._parent.backend.get_node_successors(
+                    name, include_metadata=True
+                ).items()
+            }
+
+    def __len__(self):
+        return len(self._parent.backend.get_node_count())
+
+    def __iter__(self):
+        return iter(self._parent.backend.all_nodes_as_generator(include_metadata=False))
+
+    def copy(self):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return "_GrandAdjacencyView"
+
+    def __repr__(self):
+        return "_GrandAdjacencyView"
+
+
+class _GrandNodeAtlasView(AtlasView):
+    def __init__(self, parent):
+        self.parent = parent.parent
+
+    def __getitem__(self, key):
+        return self.parent.backend.get_node_by_id(key)
+
+    def __len__(self):
+        return self.parent.backend.get_node_count()
+
+    def __iter__(self):
+        return iter(self.parent.backend.all_nodes_as_generator(include_metadata=False))
+
+    def copy(self):
+        return {
+            n: metadata
+            for n, metadata in self.parent.backend.all_nodes_as_generator(
+                include_metadata=True
+            )
+        }
+
+    def __str__(self):
+        return "_GrandNodeAtlasView"
+
+    def __repr__(self):
+        return "_GrandNodeAtlasView"
 
 
 class NetworkXDialect(nx.Graph):
@@ -29,14 +98,16 @@ class NetworkXDialect(nx.Graph):
         return self.parent.backend.add_node(name, kwargs)
 
     # @property
-    # def nodes(self):
+    # def nodes(self)
     #     return NodeView(self)
 
     def add_edge(self, u: Hashable, v: Hashable, **kwargs):
         return self.parent.backend.add_edge(u, v, kwargs)
 
     def edges(self, data: bool = False):
-        return self.parent.backend.all_edges_as_generator(include_metadata=data)
+        return [
+            i for i in self.parent.backend.all_edges_as_generator(include_metadata=data)
+        ]
 
     def neighbors(self, u: Hashable) -> Generator:
         return self.parent.backend.get_node_neighbors(u)
@@ -49,38 +120,43 @@ class NetworkXDialect(nx.Graph):
 
     @property
     def _node(self):
-        return {
-            n: metadata
-            for n, metadata in self.parent.backend.all_nodes_as_generator(
-                include_metadata=True
-            )
-        }
+        return _GrandNodeAtlasView(self)
+
+    @property
+    def adj(self):
+        """
+        https://github.com/networkx/networkx/blob/master/networkx/classes/digraph.py#L323
+        """
+        return _GrandAdjacencyView(self, "succ")
 
     @property
     def _adj(self):
-        # TODO: This is very inefficient for over-the-wire Backends.
-        return {
-            node: {
-                neighbor: metadata
-                for neighbor, metadata in self.parent.backend.get_node_neighbors(
-                    node, include_metadata=True
-                ).items()
-            }
-            for node in self.nodes()
-        }
+        """
+        https://github.com/networkx/networkx/blob/master/networkx/classes/digraph.py#L323
+        """
+        return _GrandAdjacencyView(self, "succ")
+
+    @property
+    def succ(self):
+        return _GrandAdjacencyView(self, "succ")
+
+    @property
+    def _succ(self):
+        return _GrandAdjacencyView(self, "succ")
 
     @property
     def pred(self):
-        # TODO: This is very inefficient for over-the-wire Backends.
-        return {
-            node: {
-                neighbor: metadata
-                for neighbor, metadata in self.parent.backend.get_node_predecessors(
-                    node, include_metadata=True
-                ).items()
-            }
-            for node in self.nodes()
-        }
+        """
+        https://github.com/networkx/networkx/blob/master/networkx/classes/digraph.py#L323
+        """
+        return _GrandAdjacencyView(self, "pred")
+
+    @property
+    def _pred(self):
+        """
+        https://github.com/networkx/networkx/blob/master/networkx/classes/digraph.py#L323
+        """
+        return _GrandAdjacencyView(self, "pred")
 
 
 class IGraphDialect(nx.Graph):
