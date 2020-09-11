@@ -1,6 +1,8 @@
 from typing import Hashable, Generator, Iterable
 import abc
 
+import pandas as pd
+
 
 class Backend(abc.ABC):
     """
@@ -19,6 +21,15 @@ class Backend(abc.ABC):
 
         Returns:
             None
+
+        """
+        ...
+
+    def ingest_from_edgelist_dataframe(
+        self, edgelist: pd.DataFrame, source_column: str, target_column: str
+    ) -> None:
+        """
+        Ingest an edgelist from a Pandas DataFrame.
 
         """
         ...
