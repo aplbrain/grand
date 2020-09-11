@@ -150,7 +150,10 @@ class SQLBackend(Backend):
             Generator: A generator of all nodes (arbitrary sort)
 
         """
-        return self._connection.execute(self._node_table.select()).fetchall()
+        results = self._connection.execute(self._node_table.select()).fetchall()
+        if include_metadata:
+            return [(row[self._primary_key], row["_metadata"]) for row in results]
+        return [row[self._primary_key] for row in results]
 
     def has_node(self, u: Hashable) -> bool:
         """
