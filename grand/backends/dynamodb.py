@@ -425,3 +425,14 @@ class DynamoDBBackend(Backend):
             "ItemCount"
         ]
 
+    # Ingesting
+
+    def ingest_from_edgelist_dataframe(
+        self, edgelist: pd.DataFrame, source_column: str, target_column: str
+    ) -> None:
+        """
+        Ingest an edgelist from a Pandas DataFrame.
+
+        """
+        raise NotImplementedError()
+
