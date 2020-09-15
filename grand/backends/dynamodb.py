@@ -1,6 +1,7 @@
 from typing import Hashable, Generator, Optional, Iterable
 import time
 
+import pandas as pd
 import boto3
 from boto3.dynamodb.conditions import Key
 
