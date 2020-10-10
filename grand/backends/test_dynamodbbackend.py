@@ -1,4 +1,6 @@
 import unittest
+import pytest
+import os
 
 import networkx as nx
 
@@ -6,6 +8,9 @@ from . import DynamoDBBackend
 from .. import Graph
 
 
+@pytest.mark.skipif(
+    os.environ.get("TEST_DYNAMO") != "1", reason="No running DynamoDB instance."
+)
 class TestDynamoDBBackend(unittest.TestCase):
     def test_can_create(self):
         DynamoDBBackend()
