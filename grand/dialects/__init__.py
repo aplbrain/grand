@@ -1,4 +1,8 @@
 from typing import Hashable, Generator, List, Tuple, Union
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .. import Graph
 
 import networkx as nx
 import pandas as pd
@@ -81,12 +85,12 @@ class NetworkXDialect(nx.Graph):
 
     """
 
-    def __init__(self, parent: "grand.Graph"):
+    def __init__(self, parent: "Graph"):
         """
         Create a new dialect to query a backend with NetworkX syntax.
 
         Arguments:
-            parent (Graph): The parent grand.Graph object
+            parent (Graph): The parent Graph object
 
         Returns:
             None
@@ -165,12 +169,12 @@ class IGraphDialect(nx.Graph):
 
     """
 
-    def __init__(self, parent: "grand.Graph"):
+    def __init__(self, parent: "Graph"):
         """
         Create a new dialect to query a backend with Python-IGraph syntax.
 
         Arguments:
-            parent (Graph): The parent grand.Graph object
+            parent (Graph): The parent Graph object
 
         Returns:
             None
@@ -204,7 +208,7 @@ class IGraphDialect(nx.Graph):
 
 
 class CypherDialect:
-    def __init__(self, parent: "grand.Graph") -> None:
+    def __init__(self, parent: "Graph") -> None:
         self.parent = parent
         self._nxlike = NetworkXDialect(parent=parent)
 
@@ -225,12 +229,12 @@ class CypherDialect:
 # from dotmotif import dotmotif, NetworkXExecutor
 #
 # class DotMotifDialect:
-#     def __init__(self, parent: "grand.Graph") -> None:
+#     def __init__(self, parent: "Graph") -> None:
 #         """
 #         Create a new DotMotifDialect to query a backend with DotMotif syntax.
 
 #         Arguments:
-#             parent (Graph): The parent grand.Graph object
+#             parent (Graph): The parent Graph object
 
 #         Returns:
 #             None
