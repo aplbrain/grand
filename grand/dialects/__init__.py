@@ -81,7 +81,7 @@ class NetworkXDialect(nx.Graph):
 
     """
 
-    def __init__(self, parent: "Graph"):
+    def __init__(self, parent: "grand.Graph"):
         """
         Create a new dialect to query a backend with NetworkX syntax.
 
@@ -165,7 +165,7 @@ class IGraphDialect(nx.Graph):
 
     """
 
-    def __init__(self, parent: "Graph"):
+    def __init__(self, parent: "grand.Graph"):
         """
         Create a new dialect to query a backend with Python-IGraph syntax.
 
@@ -204,7 +204,7 @@ class IGraphDialect(nx.Graph):
 
 
 class CypherDialect:
-    def __init__(self, parent: "Graph") -> None:
+    def __init__(self, parent: "grand.Graph") -> None:
         self.parent = parent
         self._nxlike = NetworkXDialect(parent=parent)
 
@@ -225,7 +225,7 @@ class CypherDialect:
 # from dotmotif import dotmotif, NetworkXExecutor
 #
 # class DotMotifDialect:
-#     def __init__(self, parent: "Graph") -> None:
+#     def __init__(self, parent: "grand.Graph") -> None:
 #         """
 #         Create a new DotMotifDialect to query a backend with DotMotif syntax.
 
