@@ -1,6 +1,8 @@
 from typing import Hashable, Generator, Optional, Iterable
 import time
+import concurrent.futures
 
+import pandas as pd
 import boto3
 from boto3.dynamodb.conditions import Key
 
@@ -8,6 +10,7 @@ from .backend import Backend
 
 
 _DEFAULT_DYNAMODB_URL = "http://localhost:4566"
+_N_PARALLEL_REQUESTS = 16
 
 
 def _dynamo_table_exists(table_name: str, client: boto3.client):
@@ -425,3 +428,79 @@ class DynamoDBBackend(Backend):
             "ItemCount"
         ]
 
+    # Ingesting
+
+    def ingest_from_edgelist_dataframe(
+        self, edgelist: pd.DataFrame, source_column: str, target_column: str
+    ) -> None:
+        """
+        Ingest an edgelist from a Pandas DataFrame.
+
+        """
+        # Ingest edges first:
+
+        edge_column_names = [
+            c for c in edgelist.columns if c not in [source_column, target_column]
+        ]
+
+        tic = time.time()
+        with self._edge_table.batch_writer() as batch_writer:
+
+            with concurrent.futures.ThreadPoolExecutor(
+                _N_PARALLEL_REQUESTS
+            ) as executor:
+                result_futures = list(
+                    map(
+                        lambda i: executor.submit(
+                            lambda: batch_writer.put_item(
+                                Item={
+                                    self._primary_key: f"__{edgelist._get_value(i, source_column)}__{edgelist._get_value(i, target_column)}",
+                                    self._edge_source_key: edgelist._get_value(
+                                        i, source_column
+                                    ),
+                                    self._edge_target_key: edgelist._get_value(
+                                        i, target_column
+                                    ),
+                                    **{
+                                        col: edgelist._get_value(i, col)
+                                        for col in edge_column_names
+                                    },
+                                }
+                            )
+                        ),
+                        edgelist.index,
+                    )
+                )
+                for future in concurrent.futures.as_completed(result_futures):
+                    future.result()
+
+            # for edge in edges:
+            #     batch_writer.put_item(Item=edge)
+        edge_toc = time.time() - tic
+
+        tic = time.time()
+        # Construct a unique set of nodes:
+        nodes = edgelist[source_column].append(edgelist[target_column]).unique()
+        with self._node_table.batch_writer() as batch_writer:
+            with concurrent.futures.ThreadPoolExecutor(
+                _N_PARALLEL_REQUESTS
+            ) as executor:
+                result_futures = list(
+                    map(
+                        lambda x: executor.submit(
+                            lambda: batch_writer.put_item(
+                                Item={self._primary_key: str(x)}
+                            )
+                        ),
+                        nodes,
+                    )
+                )
+                for future in concurrent.futures.as_completed(result_futures):
+                    future.result()
+
+        return {
+            "node_count": len(nodes),
+            "node_duration": time.time() - tic,
+            "edge_count": len(edgelist),
+            "edge_duration": edge_toc,
+        }

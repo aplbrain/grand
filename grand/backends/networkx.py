@@ -1,6 +1,8 @@
 from typing import Hashable, Generator, Iterable
-import boto3
+import time
 
+import boto3
+import pandas as pd
 import networkx as nx
 
 from .backend import Backend
@@ -167,3 +169,38 @@ class NetworkXBackend(Backend):
         """
         return len(self._nx_graph)
 
+    def ingest_from_edgelist_dataframe(
+        self, edgelist: pd.DataFrame, source_column: str, target_column: str
+    ) -> None:
+        """
+        Ingest an edgelist from a Pandas DataFrame.
+
+        """
+
+        tic = time.time()
+        self._nx_graph.add_edges_from(
+            [
+                (
+                    e[source_column],
+                    e[target_column],
+                    {
+                        k: v
+                        for k, v in dict(e).items()
+                        if k not in [source_column, target_column]
+                    },
+                )
+                for _, e in edgelist.iterrows()
+            ]
+        )
+
+        nodes = edgelist[source_column].append(edgelist[target_column]).unique()
+
+        return {
+            "node_count": len(nodes),
+            "node_duration": 0,
+            "edge_count": len(edgelist),
+            "edge_duration": time.time() - tic,
+        }
+
+    def teardown(self) -> None:
+        return
