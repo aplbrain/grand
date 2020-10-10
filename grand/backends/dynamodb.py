@@ -1,5 +1,6 @@
 from typing import Hashable, Generator, Optional, Iterable
 import time
+import concurrent.futures
 
 import pandas as pd
 import boto3
@@ -9,6 +10,7 @@ from .backend import Backend
 
 
 _DEFAULT_DYNAMODB_URL = "http://localhost:4566"
+_N_PARALLEL_REQUESTS = 16
 
 
 def _dynamo_table_exists(table_name: str, client: boto3.client):
@@ -435,5 +437,68 @@ class DynamoDBBackend(Backend):
         Ingest an edgelist from a Pandas DataFrame.
 
         """
-        raise NotImplementedError()
+        # Ingest edges first:
+        batch_size = 100
+        tic = time.time()
+        for i in range(0, len(edgelist), batch_size):
+            edges = [
+                {
+                    self._primary_key: f"__{e[source_column]}__{e[target_column]}",
+                    self._edge_source_key: str(e[source_column]),
+                    self._edge_target_key: str(e[target_column]),
+                    **{
+                        k: v
+                        for k, v in e.items()
+                        if k not in [source_column, target_column]
+                    },
+                }
+                for _, e in edgelist[i : i + batch_size].iterrows()
+            ]
+            with self._edge_table.batch_writer() as batch_writer:
 
+                with concurrent.futures.ThreadPoolExecutor(
+                    _N_PARALLEL_REQUESTS
+                ) as executor:
+                    result_futures = list(
+                        map(
+                            lambda x: executor.submit(
+                                lambda: batch_writer.put_item(Item=x)
+                            ),
+                            [edge for edge in edges],
+                        )
+                    )
+                    for future in concurrent.futures.as_completed(result_futures):
+                        future.result()
+
+                # for edge in edges:
+                #     batch_writer.put_item(Item=edge)
+        edge_toc = time.time() - tic
+
+        tic = time.time()
+        # Construct a unique set of nodes:
+        nodes = edgelist[source_column].append(edgelist[target_column]).unique()
+        for i in range(0, len(nodes), batch_size):
+            with self._node_table.batch_writer() as batch_writer:
+                # TODO: Parallelism here
+                with concurrent.futures.ThreadPoolExecutor(
+                    _N_PARALLEL_REQUESTS
+                ) as executor:
+                    result_futures = list(
+                        map(
+                            lambda x: executor.submit(
+                                lambda: batch_writer.put_item(
+                                    Item={self._primary_key: str(x)}
+                                )
+                            ),
+                            nodes[i : i + batch_size],
+                        )
+                    )
+                    for future in concurrent.futures.as_completed(result_futures):
+                        future.result()
+
+        return {
+            "node_count": len(nodes),
+            "node_duration": time.time() - tic,
+            "edge_count": len(edgelist),
+            "edge_duration": edge_toc,
+        }

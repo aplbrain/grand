@@ -3,6 +3,8 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+["sqlalchemy"]
+
 setuptools.setup(
     name="grand",
     version="0.1.0",
