@@ -1,6 +1,7 @@
 from typing import Hashable, Generator, Optional, Iterable
 import time
 
+import pandas as pd
 import sqlalchemy
 from sqlalchemy.sql import select
 from sqlalchemy import and_, or_, func
@@ -412,4 +413,75 @@ class SQLBackend(Backend):
         return self._connection.execute(
             select([func.count()]).select_from(self._node_table)
         ).scalar()
+
+    def ingest_from_edgelist_dataframe(
+        self, edgelist: pd.DataFrame, source_column: str, target_column: str
+    ) -> None:
+        """
+        Ingest an edgelist from a Pandas DataFrame.
+
+        """
+        # Produce edge list:
+
+        edge_tic = time.time()
+        newlist = edgelist.rename(
+            columns={
+                source_column: self._edge_source_key,
+                target_column: self._edge_target_key,
+            }
+        )
+
+        newlist[self._primary_key] = edgelist.apply(
+            lambda x: f"__{x[source_column]}__{x[target_column]}", axis="columns"
+        )
+        newlist["_metadata"] = edgelist.apply(
+            lambda x: {
+                k: v for k, v in x.items() if k not in [source_column, target_column]
+            },
+            axis="columns",
+        )
+
+        newlist[
+            [
+                self._edge_source_key,
+                self._edge_target_key,
+                self._primary_key,
+                "_metadata",
+            ]
+        ].to_sql(
+            self._edge_table_name,
+            self._engine,
+            index=False,
+            if_exists="replace",
+            dtype={"_metadata": sqlalchemy.JSON},
+        )
+
+        edge_toc = time.time() - edge_tic
+
+        # now ingest nodes:
+        node_tic = time.time()
+        nodes = edgelist[source_column].append(edgelist[target_column]).unique()
+        pd.DataFrame(
+            [
+                {
+                    self._primary_key: node,
+                    # no metadata:
+                    "_metadata": {},
+                }
+                for node in nodes
+            ]
+        ).to_sql(
+            self._node_table_name,
+            self._engine,
+            index=False,
+            if_exists="replace",
+            dtype={"_metadata": sqlalchemy.JSON},
+        )
+
+        return {
+            "node_count": len(nodes),
+            "node_duration": time.time() - node_tic,
+            "edge_count": len(edgelist),
+            "edge_duration": edge_toc,
+        }
 
