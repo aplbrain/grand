@@ -83,3 +83,5 @@ assert G.dm.count("A -> B; B -> C; C -> A") == 6
 | `DynamoDBBackend` | A graph stored in two sister tables in AWS DynamoDB | ✅     |
 | `NetworkXBackend` | A NetworkX graph, in memory                         | ✅     |
 | `SQLBackend`      | A graph stored in two SQL-queryable sister tables   | ✅     |
+
+You can read more about usage and learn about backends and dialects in [the wiki](https://github.com/aplbrain/grand/wiki).
