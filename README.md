@@ -75,8 +75,9 @@ assert G.dm.count("A -> B; B -> C; C -> A") == 6
 | ----------------- | ---------------------------------------------- | ------ |
 | `CypherDialect`   | Cypher syntax queries                          | 🔴     |
 | `DotMotifDialect` | DotMotif subgraph isomorphisms                 | ✅     |
-| `IGraphDialect`   | Python-IGraph interface for graph manipulation | 🤔     |
+| `IGraphDialect`   | Python-IGraph interface (no metadata)          | 🤔     |
 | `NetworkXDialect` | NetworkX-like interface for graph manipulation | ✅     |
+| `NetworkitDialect` | Networkit-like interface (no metadata)        | ✅     |
 
 | Backend           | Description & Notes                                 | Status |
 | ----------------- | --------------------------------------------------- | ------ |
