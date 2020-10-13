@@ -4,11 +4,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .. import Graph
 
-import networkx as nx
 import pandas as pd
 
+import networkx as nx
 from networkx.classes.reportviews import NodeView
 from networkx.classes.coreviews import AdjacencyView, AtlasView
+
+import networkit
 
 
 class _GrandAdjacencyView(AdjacencyView):
@@ -101,12 +103,14 @@ class NetworkXDialect(nx.Graph):
     def add_node(self, name: Hashable, **kwargs):
         return self.parent.backend.add_node(name, kwargs)
 
-    # @property
-    # def nodes(self)
-    #     return NodeView(self)
-
     def add_edge(self, u: Hashable, v: Hashable, **kwargs):
         return self.parent.backend.add_edge(u, v, kwargs)
+
+    def remove_node(self, name: Hashable):
+        raise NotImplementedError
+
+    def remove_edge(self, u: Hashable, v: Hashable):
+        raise NotImplementedError
 
     def edges(self, data: bool = False):
         return [
@@ -207,23 +211,90 @@ class IGraphDialect(nx.Graph):
         return self.parent.backend.all_edges_as_generator(include_metadata=False)
 
 
-class CypherDialect:
+class NetworkitDialect(networkit.graph.Graph):
+    """
+    A Networkit-like API for interacting with a Grand graph.
+
+    For more details on the original API, see here:
+    https://networkit.github.io/dev-docs/python_api/graph.html
+
+    """
+
     def __init__(self, parent: "Graph") -> None:
         self.parent = parent
-        self._nxlike = NetworkXDialect(parent=parent)
 
-    def query(self, query_text: str) -> any:
-        """
-        Perform a Cypher query on the current graph.
+    def addNode(self):
+        new_id = self.parent.backend.get_node_count()
+        self.parent.backend.add_node(new_id)
+        return new_id
 
-        Arguments:
-            query_text (str): The cypher query text to run
+    def addEdge(self, u: Hashable, v: Hashable) -> None:
+        self.parent.backend.add_edge(u, v, {})
 
-        Returns:
-            any
+    def nodes(self):
+        return [i for i in self.iterNodes()]
 
-        """
-        raise NotImplementedError()
+    def iterNodes(self):
+        return self.parent.backend.all_nodes_as_generator()
+
+    def edges(self):
+        return [i for i in self.iterEdges()]
+
+    def iterEdges(self):
+        return self.parent.backend.all_edges_as_generator()
+
+    def hasEdge(self, u, v) -> bool:
+        return self.parent.backend.get_edge_by_id(u, v) is not None
+
+    def addNodes(self, numberOfNewNodes: int) -> int:
+        for _ in range(numberOfNewNodes):
+            r = self.addNode()
+        return r
+
+    def hasNode(self, u) -> bool:
+        return self.parent.backend.has_node(u)
+
+    def degree(self, v):
+        return len(self.parent.backend.get_node_neighbors(v))
+
+    def degreeIn(self, v):
+        return len(self.parent.backend.get_node_predecessors(v))
+
+    def degreeOut(self, v):
+        return len(self.parent.backend.get_node_successors(v))
+
+    def density(self):
+        # TODO: implement backend#degree?
+        E = len(self.parent.backend.all_edges_as_generator())
+        V = self.parent.backend.get_node_count()
+
+        if self.parent.backend.is_directed():
+            return E / (V * (V - 1))
+        else:
+            return 2 * E / (V * (V - 1))
+
+    def numberOfNodes(self) -> int:
+        return self.parent.backend.get_node_count()
+
+    def numberOfEdges(self) -> int:
+        return len(self.parent.backend.all_edges_as_generator())
+
+    def removeEdge(self, u, v) -> None:
+        raise NotImplementedError
+        return self.parent.backend.remove_edge(u, v)
+
+    def removeNode(self, u: Hashable) -> None:
+        raise NotImplementedError
+        return self.parent.backend.remove_node(u)
+
+    def append(self, G: networkit.graph.Graph):
+        raise NotImplementedError
+
+    def copyNodes(self) -> networkit.graph.Graph:
+        raise NotImplementedError
+
+    def BFSEdgesFrom(self, start: Union[int, List[int]]):
+        raise NotImplementedError
 
 
 # from dotmotif import dotmotif, NetworkXExecutor
