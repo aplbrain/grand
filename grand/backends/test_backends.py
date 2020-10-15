@@ -182,3 +182,9 @@ class TestBackend:
         assert len(
             [i for i in DiGraphMatcher(G.nx, G.nx).subgraph_monomorphisms_iter()]
         ) == len([i for i in DiGraphMatcher(nxG, nxG).subgraph_monomorphisms_iter()])
+
+    def test_can_get_edge_metadata(self, backend):
+        G = Graph(backend=backend())
+        G.nx.add_edge("foo", "bar", baz=True)
+        assert G.nx.edges(data=True) == [("foo", "bar", {"baz": True})]
+
