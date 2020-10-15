@@ -10,8 +10,6 @@ import networkx as nx
 from networkx.classes.reportviews import NodeView
 from networkx.classes.coreviews import AdjacencyView, AtlasView
 
-import networkit
-
 
 class _GrandAdjacencyView(AdjacencyView):
 
@@ -211,7 +209,7 @@ class IGraphDialect(nx.Graph):
         return self.parent.backend.all_edges_as_generator(include_metadata=False)
 
 
-class NetworkitDialect(networkit.graph.Graph):
+class NetworkitDialect:
     """
     A Networkit-like API for interacting with a Grand graph.
 
@@ -287,10 +285,10 @@ class NetworkitDialect(networkit.graph.Graph):
         raise NotImplementedError
         return self.parent.backend.remove_node(u)
 
-    def append(self, G: networkit.graph.Graph):
+    def append(self, G):
         raise NotImplementedError
 
-    def copyNodes(self) -> networkit.graph.Graph:
+    def copyNodes(self):
         raise NotImplementedError
 
     def BFSEdgesFrom(self, start: Union[int, List[int]]):
