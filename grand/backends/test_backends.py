@@ -6,34 +6,46 @@ import networkx as nx
 from . import NetworkXBackend, SQLBackend, DynamoDBBackend
 from .. import Graph
 
+backend_test_params = [
+    pytest.param(
+        NetworkXBackend,
+        marks=pytest.mark.skipif(
+            os.environ.get("TEST_NETWORKXBACKEND", default="1") != "1",
+            reason="NetworkX Backend skipped because $TEST_NETWORKXBACKEND != 0.",
+        ),
+    ),
+    pytest.param(
+        SQLBackend,
+        marks=pytest.mark.skipif(
+            os.environ.get("TEST_SQLBACKEND", default="1") != "1",
+            reason="SQL Backend skipped because $TEST_SQLBACKEND != 0.",
+        ),
+    ),
+    pytest.param(
+        DynamoDBBackend,
+        marks=pytest.mark.skipif(
+            os.environ.get("TEST_DYNAMODBBACKEND") != "1",
+            reason="DynamoDB Backend skipped because $TEST_DYNAMODBBACKEND != 0.",
+        ),
+    ),
+]
 
-@pytest.mark.parametrize(
-    "backend",
-    [
+if os.environ.get("TEST_NETWORKITBACKEND") == "1":
+    from .networkit import NetworkitBackend
+
+    backend_test_params.append(
         pytest.param(
-            SQLBackend,
+            NetworkitBackend,
             marks=pytest.mark.skipif(
-                os.environ.get("TEST_NETWORKXBACKEND", default="1") != "1",
-                reason="NetworkX Backend skipped because $TEST_NETWORKXBACKEND != 0.",
+                os.environ.get("TEST_NETWORKITBACKEND") != "1",
+                reason="Networkit Backend skipped because $TEST_NETWORKITBACKEND != 0.",
             ),
         ),
-        pytest.param(
-            SQLBackend,
-            marks=pytest.mark.skipif(
-                os.environ.get("TEST_SQLBACKEND", default="1") != "1",
-                reason="SQL Backend skipped because $TEST_SQLBACKEND != 0.",
-            ),
-        ),
-        pytest.param(
-            DynamoDBBackend,
-            marks=pytest.mark.skipif(
-                os.environ.get("TEST_DYNAMODBBACKEND") != "1",
-                reason="DynamoDB Backend skipped because $TEST_DYNAMODBBACKEND != 0.",
-            ),
-        ),
-    ],
-)
-class TestSQLBackend:
+    )
+
+
+@pytest.mark.parametrize("backend", backend_test_params)
+class TestBackend:
     def test_can_create(self, backend):
         backend()
 
@@ -175,3 +187,9 @@ class TestSQLBackend:
         assert len(
             [i for i in DiGraphMatcher(G.nx, G.nx).subgraph_monomorphisms_iter()]
         ) == len([i for i in DiGraphMatcher(nxG, nxG).subgraph_monomorphisms_iter()])
+
+    def test_can_get_edge_metadata(self, backend):
+        G = Graph(backend=backend())
+        G.nx.add_edge("foo", "bar", baz=True)
+        assert G.nx.edges(data=True) == [("foo", "bar", {"baz": True})]
+

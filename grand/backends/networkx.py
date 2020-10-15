@@ -63,7 +63,7 @@ class NetworkXBackend(Backend):
         """
         return self._nx_graph.nodes[node_name]
 
-    def all_nodes_as_generator(self, include_metadata: bool = False) -> Generator:
+    def all_nodes_as_iterable(self, include_metadata: bool = False) -> Generator:
         """
         Get a generator of all of the nodes in this graph.
 
@@ -95,7 +95,7 @@ class NetworkXBackend(Backend):
         """
         self._nx_graph.add_edge(u, v, **metadata)
 
-    def all_edges_as_generator(self, include_metadata: bool = False) -> Generator:
+    def all_edges_as_iterable(self, include_metadata: bool = False) -> Generator:
         """
         Get a list of all edges in this graph, arbitrary sort.
 

@@ -39,7 +39,7 @@ class _GrandAdjacencyView(AdjacencyView):
         return len(self._parent.backend.get_node_count())
 
     def __iter__(self):
-        return iter(self._parent.backend.all_nodes_as_generator(include_metadata=False))
+        return iter(self._parent.backend.all_nodes_as_iterable(include_metadata=False))
 
     def copy(self):
         raise NotImplementedError()
@@ -62,12 +62,12 @@ class _GrandNodeAtlasView(AtlasView):
         return self.parent.backend.get_node_count()
 
     def __iter__(self):
-        return iter(self.parent.backend.all_nodes_as_generator(include_metadata=False))
+        return iter(self.parent.backend.all_nodes_as_iterable(include_metadata=False))
 
     def copy(self):
         return {
             n: metadata
-            for n, metadata in self.parent.backend.all_nodes_as_generator(
+            for n, metadata in self.parent.backend.all_nodes_as_iterable(
                 include_metadata=True
             )
         }
@@ -112,7 +112,7 @@ class NetworkXDialect(nx.Graph):
 
     def edges(self, data: bool = False):
         return [
-            i for i in self.parent.backend.all_edges_as_generator(include_metadata=data)
+            i for i in self.parent.backend.all_edges_as_iterable(include_metadata=data)
         ]
 
     def neighbors(self, u: Hashable) -> Generator:
@@ -192,13 +192,13 @@ class IGraphDialect(nx.Graph):
     @property
     def vs(self):
         return [
-            i for i in self.parent.backend.all_nodes_as_generator(include_metadata=True)
+            i for i in self.parent.backend.all_nodes_as_iterable(include_metadata=True)
         ]
 
     @property
     def es(self):
         return [
-            i for i in self.parent.backend.all_edges_as_generator(include_metadata=True)
+            i for i in self.parent.backend.all_edges_as_iterable(include_metadata=True)
         ]
 
     def add_edges(self, edgelist: List[Tuple[Hashable, Hashable]]):
@@ -206,7 +206,7 @@ class IGraphDialect(nx.Graph):
             return self.parent.backend.add_edge(u, v, {})
 
     def get_edgelist(self):
-        return self.parent.backend.all_edges_as_generator(include_metadata=False)
+        return self.parent.backend.all_edges_as_iterable(include_metadata=False)
 
 
 class NetworkitDialect:
@@ -233,13 +233,13 @@ class NetworkitDialect:
         return [i for i in self.iterNodes()]
 
     def iterNodes(self):
-        return self.parent.backend.all_nodes_as_generator()
+        return self.parent.backend.all_nodes_as_iterable()
 
     def edges(self):
         return [i for i in self.iterEdges()]
 
     def iterEdges(self):
-        return self.parent.backend.all_edges_as_generator()
+        return self.parent.backend.all_edges_as_iterable()
 
     def hasEdge(self, u, v) -> bool:
         return self.parent.backend.get_edge_by_id(u, v) is not None
@@ -263,7 +263,7 @@ class NetworkitDialect:
 
     def density(self):
         # TODO: implement backend#degree?
-        E = len(self.parent.backend.all_edges_as_generator())
+        E = len(self.parent.backend.all_edges_as_iterable())
         V = self.parent.backend.get_node_count()
 
         if self.parent.backend.is_directed():
@@ -275,7 +275,7 @@ class NetworkitDialect:
         return self.parent.backend.get_node_count()
 
     def numberOfEdges(self) -> int:
-        return len(self.parent.backend.all_edges_as_generator())
+        return len(self.parent.backend.all_edges_as_iterable())
 
     def removeEdge(self, u, v) -> None:
         raise NotImplementedError
