@@ -4,8 +4,10 @@ import os
 import networkx as nx
 
 from . import NetworkXBackend, SQLBackend, DynamoDBBackend
-from .networkit import NetworkitBackend
 from .. import Graph
+
+if os.environ.get("TEST_NETWORKITBACKEND") == "1":
+    from .networkit import NetworkitBackend
 
 
 @pytest.mark.parametrize(
