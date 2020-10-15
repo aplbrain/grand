@@ -35,3 +35,22 @@ class DictMetadataStore(MetadataStore):
 
     def get_edge(self, u: Hashable, v: Hashable) -> dict:
         return self.edata[(u, v)]
+
+
+class NodeNameManager:
+    def __init__(self):
+        self.node_names_by_id = {}
+        self.node_ids_by_name = {}
+
+    def add_node(self, name: Hashable, _id: Hashable):
+        self.node_names_by_id[_id] = name
+        self.node_ids_by_name[name] = _id
+
+    def get_name(self, _id: Hashable) -> Hashable:
+        return self.node_names_by_id[_id]
+
+    def get_id(self, name: Hashable) -> Hashable:
+        return self.node_ids_by_name[name]
+
+    def __contains__(self, name: Hashable) -> bool:
+        return name in self.node_ids_by_name

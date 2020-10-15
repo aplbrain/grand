@@ -5,32 +5,24 @@ import networkit
 import pandas as pd
 
 from .backend import Backend
-from .metadatastore import MetadataStore, DictMetadataStore
-
-
-class NodeNameManager:
-    def __init__(self):
-        self.node_names_by_id = {}
-        self.node_ids_by_name = {}
-
-    def add_node(self, name: Hashable, _id: Hashable):
-        self.node_names_by_id[_id] = name
-        self.node_ids_by_name[name] = _id
-
-    def get_name(self, _id: Hashable) -> Hashable:
-        return self.node_names_by_id[_id]
-
-    def get_id(self, name: Hashable) -> Hashable:
-        return self.node_ids_by_name[name]
-
-    def __contains__(self, name: Hashable) -> bool:
-        return name in self.node_ids_by_name
+from .metadatastore import MetadataStore, DictMetadataStore, NodeNameManager
 
 
 class NetworkitBackend(Backend):
     """
     Networkit doesn't support metadata or named nodes, so all node names and
     metadata must currently be stored in a parallel data structure.
+
+    To solve this problem, a NodeNameManager and MetadataStore, from
+    `grand.backends.metadatastore.NodeNameManager` and
+    `grand.backends.metadatastore.MetadataStore` respectively, are included at
+    the top level of this class. In order to preserve this metadata structure
+    statefully, you must serialize both the graph as well as the data stores.
+
+    This is currently UNOPTIMIZED CODE.
+
+    Recommendations for future work include improved indexing and caching of
+    node names and metadata.
 
     Networkit.graph.Graph documentation:
     https://networkit.github.io/dev-docs/python_api/graph.html
@@ -39,10 +31,14 @@ class NetworkitBackend(Backend):
 
     def __init__(self, directed: bool = False, metadata_store: MetadataStore = None):
         """
-        Create a new Backend instance.
+        Create a new NetworkitBackend instance, using a Networkit.graph.Graph
+        object to store and manage network structure.
 
         Arguments:
             directed (bool: False): Whether to make the backend graph directed
+            metadata_store (MetadataStore): Optionally, a MetadataStore to use
+                to handle node and edge attributes. If not provided, defaults
+                to a DictMetadataStore.
 
         Returns:
             None
