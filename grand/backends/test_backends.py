@@ -20,7 +20,7 @@ from .. import Graph
         pytest.param(
             NetworkitBackend,
             marks=pytest.mark.skipif(
-                os.environ.get("TEST_NETWORKITBACKEND", default="1") != "1",
+                os.environ.get("TEST_NETWORKITBACKEND") != "1",
                 reason="Networkit Backend skipped because $TEST_NETWORKITBACKEND != 0.",
             ),
         ),
