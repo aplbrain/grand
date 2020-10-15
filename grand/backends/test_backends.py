@@ -3,7 +3,8 @@ import os
 
 import networkx as nx
 
-from . import NetworkXBackend, SQLBackend, DynamoDBBackend, NetworkitBackend
+from . import NetworkXBackend, SQLBackend, DynamoDBBackend
+from .networkit import NetworkitBackend
 from .. import Graph
 
 
