@@ -37,7 +37,10 @@ import grand
 G = grand.Graph()
 
 # Start in igraph:
-G.igraph.add_vertices(6)
+G.igraph.add_vertices(5)
+
+# A little bit of networkit:
+G.igraph.addNode()
 
 # And switch to networkx:
 assert len(G.nx.nodes()) == 6
@@ -46,21 +49,12 @@ assert len(G.nx.nodes()) == 6
 assert len(G.igraph.vs) == 6
 ```
 
-You can also use DotMotif to query graphs in Grand-DynamoDB graph format:
+You should be able to use the "dialect" objects the same way you'd use a real graph from the constituent libraries. For example, here is a NetworkX algorithm running on NetworkX graphs alongside Grand graphs:
 
 ```python
-import grand
+import networkx as nx
 
-G = grand.Graph()
-
-# Start in networkx:
-G.nx.add_edge("1", "2")
-G.nx.add_edge("2", "3")
-G.nx.add_edge("3", "1")
-G.nx.add_edge("3", "4")
-
-# Count motifs with DotMotif:
-assert G.dm.count("A -> B; B -> C; C -> A") == 6
+nx.algorithms.isomorphism.GraphMatcher(networkxGraph, grandGraph.nx)
 ```
 
 ## Current Support
@@ -74,7 +68,7 @@ assert G.dm.count("A -> B; B -> C; C -> A") == 6
 | Dialect           | Description & Notes                            | Status |
 | ----------------- | ---------------------------------------------- | ------ |
 | `CypherDialect`   | Cypher syntax queries                          | 🔴     |
-| `DotMotifDialect` | DotMotif subgraph isomorphisms                 | ✅     |
+| `DotMotifDialect` | DotMotif subgraph isomorphisms                 | 🤔     |
 | `IGraphDialect`   | Python-IGraph interface (no metadata)          | 🤔     |
 | `NetworkXDialect` | NetworkX-like interface for graph manipulation | ✅     |
 | `NetworkitDialect` | Networkit-like interface (no metadata)        | ✅     |
