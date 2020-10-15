@@ -24,14 +24,16 @@ class NodeNameManager:
         return self.node_ids_by_name[name]
 
     def __contains__(self, name: Hashable) -> bool:
-        return name in self.node_names_by_id
+        return name in self.node_ids_by_name
 
 
 class NetworkitBackend(Backend):
     """
-    Abstract base class for the management of persisted graph structure.
+    Networkit doesn't support metadata or named nodes, so all node names and
+    metadata must currently be stored in a parallel data structure.
 
-    Do not use this class directly.
+    Networkit.graph.Graph documentation:
+    https://networkit.github.io/dev-docs/python_api/graph.html
 
     """
 
@@ -102,7 +104,7 @@ class NetworkitBackend(Backend):
             dict: The metadata associated with this node
 
         """
-        self._meta.get_node(node_name)
+        return self._meta.get_node(node_name)
 
     def all_nodes_as_iterable(self, include_metadata: bool = False) -> Generator:
         """
@@ -151,7 +153,24 @@ class NetworkitBackend(Backend):
             Hashable: The edge ID, as inserted.
 
         """
-        raise NotImplementedError()
+        # If u doesn't exist:
+        if self.has_node(u):
+            x = self._names.get_id(u)
+        else:
+            x = self.add_node(u, None)
+
+        if self.has_node(v):
+            y = self._names.get_id(v)
+        else:
+            y = self.add_node(v, None)
+
+        # Insert metadata for this edge, replacing the previous metadata:
+        self._meta.add_edge(u, v, metadata)
+
+        # TODO: Support multigraphs, and allow duplicate edges.
+        if self.has_edge(u, v):
+            return
+        return self._nk_graph.addEdge(x, y)
 
     def all_edges_as_iterable(self, include_metadata: bool = False) -> Generator:
         """
@@ -164,7 +183,14 @@ class NetworkitBackend(Backend):
             Generator: A generator of all edges (arbitrary sort)
 
         """
-        raise NotImplementedError()
+        if include_metadata:
+            return [(u, v) for u, v in self._nk_graph.iterEdges()]
+        return [(u, v) for u, v in self._nk_graph.iterEdges()]
+
+    def has_edge(self, u, v):
+        val = self._nk_graph.hasEdge(self._names.get_id(u), self._names.get_id(v))
+        print(self._names.get_id(u), self._names.get_id(v), val)
+        return val
 
     def get_edge_by_id(self, u: Hashable, v: Hashable):
         """
@@ -178,7 +204,9 @@ class NetworkitBackend(Backend):
             dict: Metadata associated with this edge
 
         """
-        raise NotImplementedError()
+        if self.has_edge(u, v):
+            return self._meta.get_edge(u, v)
+        raise IndexError(f"The edge ({u}, {v}) is not in the graph.")
 
     def get_node_successors(
         self, u: Hashable, include_metadata: bool = False

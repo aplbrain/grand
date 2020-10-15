@@ -21,9 +21,13 @@ class DictMetadataStore(MetadataStore):
         self.edata = {}
 
     def add_node(self, node_name: Hashable, metadata: dict) -> Hashable:
+        if metadata is None:
+            metadata = {}
         self.ndata[node_name] = metadata
 
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict) -> Hashable:
+        if metadata is None:
+            metadata = {}
         self.edata[(u, v)] = metadata
 
     def get_node(self, node_name: Hashable) -> dict:
