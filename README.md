@@ -40,7 +40,7 @@ G = grand.Graph()
 G.igraph.add_vertices(5)
 
 # A little bit of networkit:
-G.igraph.addNode()
+G.networkit.addNode()
 
 # And switch to networkx:
 assert len(G.nx.nodes()) == 6
