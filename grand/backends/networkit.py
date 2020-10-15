@@ -185,7 +185,13 @@ class NetworkitBackend(Backend):
         """
         if include_metadata:
             return [
-                (self._names.get_name(u), self._names.get_name(v))
+                (
+                    self._names.get_name(u),
+                    self._names.get_name(v),
+                    self._meta.get_edge(
+                        self._names.get_name(u), self._names.get_name(v)
+                    ),
+                )
                 for u, v in self._nk_graph.iterEdges()
             ]
         return [
