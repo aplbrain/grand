@@ -1,15 +1,41 @@
 from typing import Hashable, Generator, Iterable
-import time
+import abc
 
-import boto3
+import networkit
 import pandas as pd
-import networkx as nx
 
 from .backend import Backend
+from .metadatastore import MetadataStore, DictMetadataStore
 
 
-class NetworkXBackend(Backend):
-    def __init__(self, directed: bool = False):
+class NodeNameManager:
+    def __init__(self):
+        self.node_names_by_id = {}
+        self.node_ids_by_name = {}
+
+    def add_node(self, name: Hashable, _id: Hashable):
+        self.node_names_by_id[_id] = name
+        self.node_ids_by_name[name] = _id
+
+    def get_name(self, _id: Hashable) -> Hashable:
+        return self.node_names_by_id[_id]
+
+    def get_id(self, name: Hashable) -> Hashable:
+        return self.node_ids_by_name[name]
+
+    def __contains__(self, name: Hashable) -> bool:
+        return name in self.node_names_by_id
+
+
+class NetworkitBackend(Backend):
+    """
+    Abstract base class for the management of persisted graph structure.
+
+    Do not use this class directly.
+
+    """
+
+    def __init__(self, directed: bool = False, metadata_store: MetadataStore = None):
         """
         Create a new Backend instance.
 
@@ -20,8 +46,19 @@ class NetworkXBackend(Backend):
             None
 
         """
-        self._nx_graph = nx.DiGraph() if directed else nx.Graph()
         self._directed = directed
+        self._meta = metadata_store or DictMetadataStore()
+        self._nk_graph = networkit.graph.Graph()
+        self._names = NodeNameManager()
+
+    def ingest_from_edgelist_dataframe(
+        self, edgelist: pd.DataFrame, source_column: str, target_column: str
+    ) -> None:
+        """
+        Ingest an edgelist from a Pandas DataFrame.
+
+        """
+        raise NotImplementedError()
 
     def is_directed(self) -> bool:
         """
@@ -48,7 +85,11 @@ class NetworkXBackend(Backend):
             Hashable: The ID of this node, as inserted
 
         """
-        self._nx_graph.add_node(node_name, **metadata)
+        # TODO: Remove metadata from lookup if insertion fails
+        nk_id = self._nk_graph.addNode()
+        self._names.add_node(node_name, nk_id)
+        self._meta.add_node(node_name, metadata)
+        return nk_id
 
     def get_node_by_id(self, node_name: Hashable):
         """
@@ -61,7 +102,7 @@ class NetworkXBackend(Backend):
             dict: The metadata associated with this node
 
         """
-        return self._nx_graph.nodes[node_name]
+        self._meta.get_node(node_name)
 
     def all_nodes_as_iterable(self, include_metadata: bool = False) -> Generator:
         """
@@ -75,7 +116,24 @@ class NetworkXBackend(Backend):
             Generator: A generator of all nodes (arbitrary sort)
 
         """
-        return self._nx_graph.nodes(data=include_metadata)
+        if include_metadata:
+            return [
+                (self._names.get_name(i), self._meta.get_node(self._names.get_name(i)))
+                for i in self._nk_graph.iterNodes()
+            ]
+        return [self._names.get_name(i) for i in self._nk_graph.iterNodes()]
+
+    def has_node(self, u: Hashable) -> bool:
+        """
+        Return true if the node exists in the graph.
+
+        Arguments:
+            u (Hashable): The ID of the node to check
+
+        Returns:
+            bool: True if the node exists
+        """
+        return u in self._names
 
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
         """
@@ -93,7 +151,7 @@ class NetworkXBackend(Backend):
             Hashable: The edge ID, as inserted.
 
         """
-        self._nx_graph.add_edge(u, v, **metadata)
+        raise NotImplementedError()
 
     def all_edges_as_iterable(self, include_metadata: bool = False) -> Generator:
         """
@@ -106,7 +164,7 @@ class NetworkXBackend(Backend):
             Generator: A generator of all edges (arbitrary sort)
 
         """
-        return self._nx_graph.edges(data=include_metadata)
+        raise NotImplementedError()
 
     def get_edge_by_id(self, u: Hashable, v: Hashable):
         """
@@ -120,7 +178,12 @@ class NetworkXBackend(Backend):
             dict: Metadata associated with this edge
 
         """
-        return self._nx_graph.edges[u, v]
+        raise NotImplementedError()
+
+    def get_node_successors(
+        self, u: Hashable, include_metadata: bool = False
+    ) -> Generator:
+        return self.get_node_neighbors(u, include_metadata)
 
     def get_node_neighbors(
         self, u: Hashable, include_metadata: bool = False
@@ -135,15 +198,13 @@ class NetworkXBackend(Backend):
             Generator
 
         """
-        if include_metadata:
-            return self._nx_graph[u]
-        return self._nx_graph.neighbors(u)
+        raise NotImplementedError()
 
     def get_node_predecessors(
         self, u: Hashable, include_metadata: bool = False
     ) -> Generator:
         """
-        Get a generator of all downstream nodes from this node.
+        Get a generator of all upstream nodes from this node.
 
         Arguments:
             u (Hashable): The source node ID
@@ -152,9 +213,7 @@ class NetworkXBackend(Backend):
             Generator
 
         """
-        if include_metadata:
-            return self._nx_graph.pred[u]
-        return self._nx_graph.predecessors(u)
+        raise NotImplementedError()
 
     def get_node_count(self) -> Iterable:
         """
@@ -167,40 +226,4 @@ class NetworkXBackend(Backend):
             int: The count of nodes
 
         """
-        return len(self._nx_graph)
-
-    def ingest_from_edgelist_dataframe(
-        self, edgelist: pd.DataFrame, source_column: str, target_column: str
-    ) -> None:
-        """
-        Ingest an edgelist from a Pandas DataFrame.
-
-        """
-
-        tic = time.time()
-        self._nx_graph.add_edges_from(
-            [
-                (
-                    e[source_column],
-                    e[target_column],
-                    {
-                        k: v
-                        for k, v in dict(e).items()
-                        if k not in [source_column, target_column]
-                    },
-                )
-                for _, e in edgelist.iterrows()
-            ]
-        )
-
-        nodes = edgelist[source_column].append(edgelist[target_column]).unique()
-
-        return {
-            "node_count": len(nodes),
-            "node_duration": 0,
-            "edge_count": len(edgelist),
-            "edge_duration": time.time() - tic,
-        }
-
-    def teardown(self) -> None:
-        return
+        return len([i for i in self.all_nodes_as_iterable()])

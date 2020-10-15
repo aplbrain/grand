@@ -1,4 +1,4 @@
-from typing import Hashable, Generator, Iterable
+from typing import Hashable, Iterable
 import abc
 
 import pandas as pd
@@ -74,7 +74,7 @@ class Backend(abc.ABC):
         """
         ...
 
-    def all_nodes_as_generator(self, include_metadata: bool = False) -> Generator:
+    def all_nodes_as_iterable(self, include_metadata: bool = False) -> Iterable:
         """
         Get a generator of all of the nodes in this graph.
 
@@ -118,7 +118,7 @@ class Backend(abc.ABC):
         """
         ...
 
-    def all_edges_as_generator(self, include_metadata: bool = False) -> Generator:
+    def all_edges_as_iterable(self, include_metadata: bool = False) -> Iterable:
         """
         Get a list of all edges in this graph, arbitrary sort.
 
@@ -147,12 +147,12 @@ class Backend(abc.ABC):
 
     def get_node_successors(
         self, u: Hashable, include_metadata: bool = False
-    ) -> Generator:
+    ) -> Iterable:
         return self.get_node_neighbors(u, include_metadata)
 
     def get_node_neighbors(
         self, u: Hashable, include_metadata: bool = False
-    ) -> Generator:
+    ) -> Iterable:
         """
         Get a generator of all downstream nodes from this node.
 
@@ -167,7 +167,7 @@ class Backend(abc.ABC):
 
     def get_node_predecessors(
         self, u: Hashable, include_metadata: bool = False
-    ) -> Generator:
+    ) -> Iterable:
         """
         Get a generator of all upstream nodes from this node.
 
@@ -191,4 +191,4 @@ class Backend(abc.ABC):
             int: The count of nodes
 
         """
-        return len([i for i in self.all_nodes_as_generator()])
+        return len([i for i in self.all_nodes_as_iterable()])

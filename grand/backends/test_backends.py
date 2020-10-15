@@ -3,7 +3,7 @@ import os
 
 import networkx as nx
 
-from . import NetworkXBackend, SQLBackend, DynamoDBBackend
+from . import NetworkXBackend, SQLBackend, DynamoDBBackend, NetworkitBackend
 from .. import Graph
 
 
@@ -11,10 +11,17 @@ from .. import Graph
     "backend",
     [
         pytest.param(
-            SQLBackend,
+            NetworkXBackend,
             marks=pytest.mark.skipif(
                 os.environ.get("TEST_NETWORKXBACKEND", default="1") != "1",
                 reason="NetworkX Backend skipped because $TEST_NETWORKXBACKEND != 0.",
+            ),
+        ),
+        pytest.param(
+            NetworkitBackend,
+            marks=pytest.mark.skipif(
+                os.environ.get("TEST_NETWORKITBACKEND", default="1") != "1",
+                reason="Networkit Backend skipped because $TEST_NETWORKITBACKEND != 0.",
             ),
         ),
         pytest.param(
@@ -33,7 +40,7 @@ from .. import Graph
         ),
     ],
 )
-class TestSQLBackend:
+class TestBackend:
     def test_can_create(self, backend):
         backend()
 
