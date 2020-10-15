@@ -50,7 +50,7 @@ class NetworkitBackend(Backend):
         """
         self._directed = directed
         self._meta = metadata_store or DictMetadataStore()
-        self._nk_graph = networkit.graph.Graph()
+        self._nk_graph = networkit.graph.Graph(directed=directed)
         self._names = NodeNameManager()
 
     def ingest_from_edgelist_dataframe(
@@ -184,13 +184,17 @@ class NetworkitBackend(Backend):
 
         """
         if include_metadata:
-            return [(u, v) for u, v in self._nk_graph.iterEdges()]
-        return [(u, v) for u, v in self._nk_graph.iterEdges()]
+            return [
+                (self._names.get_name(u), self._names.get_name(v))
+                for u, v in self._nk_graph.iterEdges()
+            ]
+        return [
+            (self._names.get_name(u), self._names.get_name(v))
+            for u, v in self._nk_graph.iterEdges()
+        ]
 
     def has_edge(self, u, v):
-        val = self._nk_graph.hasEdge(self._names.get_id(u), self._names.get_id(v))
-        print(self._names.get_id(u), self._names.get_id(v), val)
-        return val
+        return self._nk_graph.hasEdge(self._names.get_id(u), self._names.get_id(v))
 
     def get_edge_by_id(self, u: Hashable, v: Hashable):
         """
@@ -226,7 +230,23 @@ class NetworkitBackend(Backend):
             Generator
 
         """
-        raise NotImplementedError()
+        my_id = self._names.get_id(u)
+        if include_metadata:
+            val = {}
+            for vid in self._nk_graph.iterNeighbors(my_id):
+                v = self._names.get_name(vid)
+                if self.is_directed():
+                    val[v] = self._meta.get_edge(u, v)
+                else:
+                    try:
+                        val[v] = self._meta.get_edge(u, v)
+                    except KeyError:
+                        val[v] = self._meta.get_edge(v, u)
+            return val
+
+        return iter(
+            [self._names.get_name(i) for i in self._nk_graph.iterNeighbors(my_id)]
+        )
 
     def get_node_predecessors(
         self, u: Hashable, include_metadata: bool = False
@@ -241,7 +261,23 @@ class NetworkitBackend(Backend):
             Generator
 
         """
-        raise NotImplementedError()
+        my_id = self._names.get_id(u)
+        if include_metadata:
+            val = {}
+            for vid in self._nk_graph.iterInNeighbors(my_id):
+                v = self._names.get_name(vid)
+                if self.is_directed():
+                    val[v] = self._meta.get_edge(v, u)
+                else:
+                    try:
+                        val[v] = self._meta.get_edge(u, v)
+                    except KeyError:
+                        val[v] = self._meta.get_edge(v, u)
+            return val
+
+        return iter(
+            [self._names.get_name(i) for i in self._nk_graph.iterInNeighbors(my_id)]
+        )
 
     def get_node_count(self) -> Iterable:
         """
