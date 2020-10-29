@@ -3,12 +3,13 @@ import time
 
 import pandas as pd
 import sqlalchemy
+from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import select
 from sqlalchemy import and_, or_, func
 
 from .backend import Backend
 
-_DEFAULT_SQL_URL = ""
+_DEFAULT_SQL_URL = "sqlite:///"
 _DEFAULT_SQL_STR_LEN = 64
 
 
@@ -47,7 +48,7 @@ class SQLBackend(Backend):
         self._edge_source_key = "Source"
         self._edge_target_key = "Target"
 
-        self._engine = sqlalchemy.create_engine("sqlite:///" + db_url)
+        self._engine = sqlalchemy.create_engine(db_url, poolclass=NullPool)
         self._connection = self._engine.connect()
         self._metadata = sqlalchemy.MetaData()
 
@@ -96,6 +97,10 @@ class SQLBackend(Backend):
                 autoload=True,
                 autoload_with=self._engine,
             )
+
+    #def __del__(self):
+        #self._connection.close()
+ 
 
     def is_directed(self) -> bool:
         """
@@ -452,7 +457,7 @@ class SQLBackend(Backend):
             self._edge_table_name,
             self._engine,
             index=False,
-            if_exists="replace",
+            if_exists="append",
             dtype={"_metadata": sqlalchemy.JSON},
         )
 
