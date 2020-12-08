@@ -26,6 +26,7 @@ class SQLBackend(Backend):
         edge_table_name: str = None,
         db_url: str = _DEFAULT_SQL_URL,
         primary_key: str = "ID",
+        sqlalchemy_kwargs: dict = None,
     ) -> None:
         """
         Create a new SQL-backed graph store.
@@ -48,7 +49,8 @@ class SQLBackend(Backend):
         self._edge_source_key = "Source"
         self._edge_target_key = "Target"
 
-        self._engine = sqlalchemy.create_engine(db_url, poolclass=NullPool)
+        sqlalchemy_kwargs = sqlalchemy_kwargs or {}
+        self._engine = sqlalchemy.create_engine(db_url, **sqlalchemy_kwargs)
         self._connection = self._engine.connect()
         self._metadata = sqlalchemy.MetaData()
 
@@ -98,9 +100,8 @@ class SQLBackend(Backend):
                 autoload_with=self._engine,
             )
 
-    #def __del__(self):
-        #self._connection.close()
- 
+    # def __del__(self):
+    # self._connection.close()
 
     def is_directed(self) -> bool:
         """
