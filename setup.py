@@ -13,7 +13,7 @@ setuptools.setup(
     description="Graph database wrapper for non-graph datastores",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/j6k4m8/grand-python",
+    url="https://github.com/aplbrain/grand",
     packages=setuptools.find_packages(),
     install_requires = [
         'boto3',
