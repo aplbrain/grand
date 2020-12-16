@@ -273,31 +273,33 @@ class SQLBackend(Backend):
 
         """
         if self._directed:
+            pk = f"__{u}__{v}"
             return (
                 self._connection.execute(
                     self._edge_table.select().where(
-                        and_(
-                            (self._edge_table.c[self._edge_source_key] == u),
-                            (self._edge_table.c[self._edge_target_key] == v),
-                        )
+                        self._edge_table.c[self._primary_key] == pk
                     )
                 )
                 .fetchone()
                 ._metadata
+                # self._connection.execute(
+                #     self._edge_table.select().where(
+                #         and_(
+                #             (self._edge_table.c[self._edge_source_key] == u),
+                #             (self._edge_table.c[self._edge_target_key] == v),
+                #         )
+                #     )
+                # )
+                # .fetchone()
+                # ._metadata
             )
         else:
             return (
                 self._connection.execute(
                     self._edge_table.select().where(
                         or_(
-                            and_(
-                                (self._edge_table.c[self._edge_source_key] == u),
-                                (self._edge_table.c[self._edge_target_key] == v),
-                            ),
-                            and_(
-                                (self._edge_table.c[self._edge_source_key] == v),
-                                (self._edge_table.c[self._edge_target_key] == u),
-                            ),
+                            (self._edge_table.c[self._primary_key] == f"__{u}__{v}"),
+                            (self._edge_table.c[self._primary_key] == f"__{v}__{u}"),
                         )
                     )
                 )
