@@ -282,16 +282,6 @@ class SQLBackend(Backend):
                 )
                 .fetchone()
                 ._metadata
-                # self._connection.execute(
-                #     self._edge_table.select().where(
-                #         and_(
-                #             (self._edge_table.c[self._edge_source_key] == u),
-                #             (self._edge_table.c[self._edge_target_key] == v),
-                #         )
-                #     )
-                # )
-                # .fetchone()
-                # ._metadata
             )
         else:
             return (

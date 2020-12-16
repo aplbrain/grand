@@ -193,3 +193,19 @@ class TestBackend:
         G.nx.add_edge("foo", "bar", baz=True)
         assert G.nx.edges(data=True) == [("foo", "bar", {"baz": True})]
 
+    def test_edge_dne_raises(self, backend):
+        G = Graph(backend=backend())
+        G.nx.add_edge("foo", "bar", baz=True)
+
+        assert G.nx.has_edge("foo", "crab") == False
+        assert G.nx.has_edge("foo", "bar") == True
+        # assert G.nx.edges[("foo", "bar")] != None
+        # with pytest.raises(Exception):
+        #     G.nx.edges[("foo", "crab")]
+
+    def test_reverse_edges_in_undirected(self, backend):
+        G = Graph(backend=backend(directed=False), directed=False)
+        G.nx.add_edge("foo", "bar", baz=True)
+
+        assert G.nx.has_edge("foo", "bar") == True
+        assert G.nx.has_edge("bar", "foo") == True
