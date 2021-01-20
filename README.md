@@ -2,6 +2,12 @@
 
 _Grand_ lets you write your algorithms in one graph library but run them in another.
 
+## Installation
+
+```shell
+pip install grand-graph
+```
+
 ## Example use-cases
 
 -   Write NetworkX commands to analyze true-serverless graph databases using DynamoDB\*
