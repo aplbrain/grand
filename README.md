@@ -1,11 +1,12 @@
 <div align=center><img src="docs/grand.png" width=400 /></div>
 
-_Grand_ is a Rosetta Stone of graph technologies.
+_Grand_ lets you write your algorithms in one graph library but run them in another.
 
 ## Example use-cases
 
--   True-serverless graph databases using DynamoDB\*
+-   Write NetworkX commands to analyze true-serverless graph databases using DynamoDB\*
 -   Query a host graph in SQL for subgraph isomorphisms with DotMotif
+-   Write iGraph code to construct a graph, and then play with it in Networkit
 
 > \* [Neptune is not true-serverless.](docs/What-About-Neptune.md)
 
