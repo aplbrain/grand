@@ -13,12 +13,13 @@ pip install grand-graph
 -   Write NetworkX commands to analyze true-serverless graph databases using DynamoDB\*
 -   Query a host graph in SQL for subgraph isomorphisms with DotMotif
 -   Write iGraph code to construct a graph, and then play with it in Networkit
+-   Attach node and edge attributes to Networkit or IGraph graphs
 
 > \* [Neptune is not true-serverless.](docs/What-About-Neptune.md)
 
 ## Why it's a big deal
 
-_Grand_ is a Rosetta Stone of graph technologies. In short, a _Grand_ graph has a "Backend," which handles the nitty-gritty of talking to data on disk (or in the cloud), and an "Dialect", which is your preferred way of talking to a graph.
+_Grand_ is a Rosetta Stone of graph technologies. A _Grand_ graph has a "Backend," which handles the implementation-details of talking to data on disk (or in the cloud), and an "Dialect", which is your preferred way of talking to a graph.
 
 For example, here's how you make a graph that is persisted in DynamoDB (the "Backend") but that you can talk to as though it's a `networkx.DiGraph` (the "Dialect"):
 
@@ -62,6 +63,21 @@ You should be able to use the "dialect" objects the same way you'd use a real gr
 import networkx as nx
 
 nx.algorithms.isomorphism.GraphMatcher(networkxGraph, grandGraph.nx)
+```
+
+Here is an example of using Networkit, a highly performant graph library, and attaching node/edge attributes, which are not supported by the library by default:
+
+```python
+import grand
+from grand.backends.networkit import NetworkitBackend
+
+G = grand.Graph(backend=NetworkitBackend())
+
+G.nx.add_node("Jordan", type="Person")
+G.nx.add_node("Grand", type="Software")
+G.nx.add_edge("Jordan", "Grand", weight=1)
+
+print(G.nx.edges(data=True)) # contains attributes, even though graph is stored in networkit
 ```
 
 ## Current Support
