@@ -25,3 +25,7 @@ As a workaround, Grand rewrites graph operations in an abstracted graph API repr
 Neptune is still a relatively young product, and I'm hopeful that AWS will consider adding "true-serverless" pricing models, as they have done with "on-demand" DynamoDB pricing and, more recently, Aurora (though [this is still in preview](https://pages.awscloud.com/AmazonAuroraServerlessv2Preview.html)).
 
 In the medium-term, it is possible to engineer your own scaling software for Neptune that listens for traffic and scales up to meet demand. This capability is currently out of scope for the Grand library.
+
+---
+
+To read a dramatic screenplay retelling of this document, click [here](What-About-Neptune-Dramatic-Retelling.md).
