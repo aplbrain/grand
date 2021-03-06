@@ -1,85 +1,31 @@
 # What about Neptune?
 
-```
-WIDE SHOT: COMPUTER LAB
+Graph algorithms are notoriously hard to profile, and predicting workload for arbitrary data science manipulations on a graph is a major challenge in many big-data graph or network-science applications.
 
-                        NEPTUNE
+[AWS Neptune](https://aws.amazon.com/neptune/getting-started/) is a graph database as a service provided by Amazon Web Services. Though it says "serverless" on the packaging, there are a few considerations to be aware of:
 
-                (...Emerging from the sea,
-                which has materialized in
-                the corner of the computer
-                lab, much to the chagrin of
-                the sysadmin.)
+* Neptune requires that you provision a "server-equivalent" amount of compute power. For example, you can provision a single EC2 instance's worth of compute (in which case it is equivalent to running a graph database on a single node for writes. ([Reads can be parallelized across a provisioned cluster.](https://docs.aws.amazon.com/neptune/latest/userguide/intro.html))
+* Unlike DynamoDB, Neptune does not have an on-demand auto-scaling feature. In other words, if you rapidly double the number of queries you're running per second in DynamoDB, it meets your need. If you rapidly double the number of queries you send to Neptune, it may very likely fail. [[DynamoDB Auto-Scaling Documentation](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/AutoScaling.html)]
 
-    Thou darest call Grand-DynamoDB the first true-serverless
-    graph database? [BOOMING] Audacity!
+This means for certain sparse or bursty use-cases, Neptune may be _dramatically_ more expensive. For example, consider these cases:
 
+### Neptune's pricing model excels:
 
-                        JORDAN
+* Homogenous workload, consistent algorithmic complexity at all hours 
+* Adiabatic (gradual) changes to server load that take place over many minutes or hours (to give auto-scaling software time to adapt)
 
-                (Without turning or looking
-                away from laptop)
+### Neptune's pricing model may be disadvantageous:
+* Every hour, new pharmaceutical preprints are crawled and added to a graph
+* A user can trigger an arbitrary graph database algorithm via API
 
-    Tell me the Neptune pricing model.
+As a workaround, Grand rewrites graph operations in an abstracted graph API representation, and then implements these calls as operations on a DynamoDB table. This is LESS EFFICIENT than using a graph database like Neptune, but it frees the user to pay only for the compute and resources that they are using.
 
-                        NEPTUNE
+## What is the long-term fix?
 
-                (Rearing from throne of
-                seafoam, shaking seawater
-                off of his beard with rage)
+Neptune is still a relatively young product, and I'm hopeful that AWS will consider adding "true-serverless" pricing models, as they have done with "on-demand" DynamoDB pricing and, more recently, Aurora (though [this is still in preview](https://pages.awscloud.com/AmazonAuroraServerlessv2Preview.html)).
 
-    Thou simply payest for thine virtual machine!
+In the medium-term, it is possible to engineer your own scaling software for Neptune that listens for traffic and scales up to meet demand. This capability is currently out of scope for the Grand library.
 
-                        JORDAN
+---
 
-    That sounds serverful to me.
-
-                        NEPTUNE
-
-    Yet thou needn't manage thine own server!
-
-                        JORDAN
-
-    Actually that kinda sounds like a disadvantage, if
-    I'm going to the trouble of paying for CPU-hours anyway.
-
-                        NEPTUNE
-
-                (Red with fury, seamounts
-                erupting in vicinity)
-
-    FOOL! If thou would to pay only per-request, thou
-    haveth DynamoDB, among other offerings!
-
-                        JORDAN
-
-    Yep, exactly. I don't use my graph database 24/7, so
-    it doesn't make sense to pay for an always-on VM-equivalent.
-
-                (NEPTUNE grows thoughtful)
-
-    So Grand wraps DynamoDB with a graph-based API so that you
-    can treat data stored in DynamoDB like any other graph.
-
-                        NEPTUNE
-
-    Ah, I see thine logic.
-
-                (...Detecting a potential weakness!)
-
-    But havest thou a standardized API?!
-
-                        JORDAN
-
-    Aye— I mean, yes. Grand supports interacting with a graph
-    with standard NetworkX or IGraph APIs, among others.
-
-                        NEPTUNE
-
-                (Washing gradually back
-                into the ocean, calmed...
-                SUN appears over the
-                SERVER RACKS)
-
-    I am humbled. Thou mayest proceed.
-```
+To read a dramatic screenplay retelling of this document, click [here](What-About-Neptune-Dramatic-Retelling.md).
