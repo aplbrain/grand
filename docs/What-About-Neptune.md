@@ -1,6 +1,13 @@
 # What about Neptune?
 
-Graph algorithms are notoriously hard to profile, and predicting workload for arbitrary data science manipulations on a graph is a major challenge in many big-data graph or network-science applications.
+
+## Background
+
+In many industry applications, graph databases are commonly used for "shallow" graph queries — in other words, queries that rely heavily on node-wise or edge-wise indexing, but not too heavily on multiple hops along graph relations. For example, "find all purchases made by this set of users," or "find all movies with actors that also acted in a movie this user has rated five stars." These queries benefit greatly from the graph structure of the database, but do not involve deep or complete graph traversals. 
+
+In contrast with these common industry needs, mathematical or scientific graph algorithms are notoriously hard to profile, and predicting workload for arbitrary data science manipulations on a graph is a major challenge in many big-data graph or network-science applications. Graph queries may frequently involve traversing every node or edge in a graph, or performing some accumulative function across a graph. So-called "deep" graph queries include subgraph isomorphism search, graph matching, and pathfinding.
+
+## AWS Neptune
 
 [AWS Neptune](https://aws.amazon.com/neptune/getting-started/) is a graph database as a service provided by Amazon Web Services. Though it says "serverless" on the packaging, there are a few considerations to be aware of:
 
@@ -18,9 +25,9 @@ This means for certain sparse or bursty use-cases, Neptune may be _dramatically_
 * Every hour, new pharmaceutical preprints are crawled and added to a graph
 * A user can trigger an arbitrary graph database algorithm via API
 
-As a workaround, Grand rewrites graph operations in an abstracted graph API representation, and then implements these calls as operations on a DynamoDB table. This is LESS EFFICIENT than using a graph database like Neptune, but it frees the user to pay only for the compute and resources that they are using.
+As a workaround, Grand rewrites graph operations in an abstracted graph API representation, and then implements these calls as operations on a DynamoDB table. This is _less efficient_ than using a graph database like Neptune, but it frees the user to pay only for the compute and resources that they are using.
 
-## What is the long-term fix?
+## Discussion
 
 Neptune is still a relatively young product, and I'm hopeful that AWS will consider adding "true-serverless" pricing models, as they have done with "on-demand" DynamoDB pricing and, more recently, Aurora (though [this is still in preview](https://pages.awscloud.com/AmazonAuroraServerlessv2Preview.html)).
 
