@@ -1,6 +1,5 @@
 # What about Neptune?
 
-
 ## Background
 
 In many industry applications, graph databases are commonly used for "shallow" graph queries — in other words, queries that rely heavily on node-wise or edge-wise indexing, but not too heavily on multiple hops along graph relations. For example, "find all purchases made by this set of users," or "find all movies with actors that also acted in a movie this user has rated five stars." These queries benefit greatly from the graph structure of the database, but do not involve deep or complete graph traversals. 
@@ -18,14 +17,18 @@ This means for certain sparse or bursty use-cases, Neptune may be _dramatically_
 
 ### Neptune's pricing model excels:
 
-* Homogenous workload, consistent algorithmic complexity at all hours 
+* Homogenous or predictable workload, consistent algorithmic complexity at all hours.
+  * For example: An e-commerce site that maps users to recommended products.
 * Adiabatic (gradual) changes to server load that take place over many minutes or hours (to give auto-scaling software time to adapt)
+  * For example: A social media website with traffic patterns that match common wake/sleep cycles across time-zones
 
 ### Neptune's pricing model may be disadvantageous:
-* Every hour, new pharmaceutical preprints are crawled and added to a graph
+* A large workload runs periodically but infrequently, for short periods of time
+  * For example: A web-crawler that runs every hour to identify and link new pharmaceutical research literature
 * A user can trigger an arbitrary graph database algorithm via API
+  * For example: Users have direct control over the executiion of complex queries across a graph
 
-As a workaround, Grand rewrites graph operations in an abstracted graph API representation, and then implements these calls as operations on a DynamoDB table. This is _less efficient_ than using a graph database like Neptune, but it frees the user to pay only for the compute and resources that they are using.
+As a workaround, [Grand](https://github.com/aplbrain/grand) rewrites graph operations in an abstracted graph API representation, and then implements these calls as operations on a DynamoDB table. In other words, Grand acts as an abstraction layer to enable bursty workloads with arbitrary datastore backends (DynamoDB, SQLite, NetworkX in memory). This is _less efficient_ than using a graph database like Neptune, but it frees the user to pay only for the compute and resources that they are using.
 
 ## Discussion
 
