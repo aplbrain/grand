@@ -10,7 +10,7 @@ In contrast with these common industry needs, mathematical or scientific graph a
 
 [AWS Neptune](https://aws.amazon.com/neptune/getting-started/) is a graph database as a service provided by Amazon Web Services. Though it says "serverless" on the packaging, there are a few considerations to be aware of:
 
-* Neptune requires that you provision a "server-equivalent" amount of compute power. For example, you can provision a single EC2 instance's worth of compute (in which case it is equivalent to running a graph database on a single node for writes. ([Reads can be parallelized across a provisioned cluster.](https://docs.aws.amazon.com/neptune/latest/userguide/intro.html))
+* Neptune requires that you provision a "server-equivalent" amount of compute power. For example, you can provision a single EC2 instance's worth of compute, in which case it is equivalent to running a graph database on a single node for writes. ([Reads can be parallelized across a provisioned cluster.](https://docs.aws.amazon.com/neptune/latest/userguide/intro.html))
 * Unlike DynamoDB, Neptune does not have an on-demand auto-scaling feature. In other words, if you rapidly double the number of queries you're running per second in DynamoDB, it meets your need. If you rapidly double the number of queries you send to Neptune, it may very likely fail. [[DynamoDB Auto-Scaling Documentation](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/AutoScaling.html)]
 
 This means for certain sparse or bursty use-cases, Neptune may be _dramatically_ more expensive. For example, consider these cases:
