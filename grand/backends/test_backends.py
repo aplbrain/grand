@@ -43,6 +43,19 @@ if os.environ.get("TEST_NETWORKITBACKEND") == "1":
         ),
     )
 
+if os.environ.get("TEST_IGRAPHBACKEND") == "1":
+    from .igraph import IGraphBackend
+
+    backend_test_params.append(
+        pytest.param(
+            IGraphBackend,
+            marks=pytest.mark.skipif(
+                os.environ.get("TEST_IGRAPHBACKEND") != "1",
+                reason="Networkit Backend skipped because $TEST_IGRAPHBACKEND != 0.",
+            ),
+        ),
+    )
+
 
 @pytest.mark.parametrize("backend", backend_test_params)
 class TestBackend:
@@ -80,7 +93,7 @@ class TestBackend:
     def test_can_get_edge(self, backend):
         G = Graph(backend=backend())
         nxG = nx.Graph()
-        md = dict(k="B")
+        md = {"k":"B"}
         G.nx.add_edge("A", "B", **md)
         nxG.add_edge("A", "B", **md)
         assert G.nx.get_edge_data("A", "B") == nxG.get_edge_data("A", "B")
