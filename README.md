@@ -88,18 +88,20 @@ print(G.nx.edges(data=True)) # contains attributes, even though graph is stored 
 <th>🔴 = Unsupported</th>
 </tr></table>
 
-| Dialect           | Description & Notes                            | Status |
-| ----------------- | ---------------------------------------------- | ------ |
-| `CypherDialect`   | Cypher syntax queries                          | 🔴     |
-| `DotMotifDialect` | DotMotif subgraph isomorphisms                 | 🤔     |
-| `IGraphDialect`   | Python-IGraph interface (no metadata)          | 🤔     |
-| `NetworkXDialect` | NetworkX-like interface for graph manipulation | ✅     |
-| `NetworkitDialect` | Networkit-like interface (no metadata)        | ✅     |
+| Dialect            | Description & Notes                            | Status |
+| ------------------ | ---------------------------------------------- | ------ |
+| `CypherDialect`    | Cypher syntax queries                          | 🔴     |
+| `DotMotifDialect`  | DotMotif subgraph isomorphisms                 | 🤔     |
+| `IGraphDialect`    | Python-IGraph interface (no metadata)          | 🤔     |
+| `NetworkXDialect`  | NetworkX-like interface for graph manipulation | ✅     |
+| `NetworkitDialect` | Networkit-like interface (no metadata)         | ✅     |
 
-| Backend           | Description & Notes                                 | Status |
-| ----------------- | --------------------------------------------------- | ------ |
-| `DynamoDBBackend` | A graph stored in two sister tables in AWS DynamoDB | ✅     |
-| `NetworkXBackend` | A NetworkX graph, in memory                         | ✅     |
-| `SQLBackend`      | A graph stored in two SQL-queryable sister tables   | ✅     |
+| Backend            | Description & Notes                                 | Status |
+| ------------------ | --------------------------------------------------- | ------ |
+| `DynamoDBBackend`  | A graph stored in two sister tables in AWS DynamoDB | ✅     |
+| `IGraph`           | An IGraph (`igraph-python`) graph, in memory        | ✅     |
+| `NetworkitBackend` | A Networkit graph, in memory                        | ✅     |
+| `NetworkXBackend`  | A NetworkX graph, in memory                         | ✅     |
+| `SQLBackend`       | A graph stored in two SQL-queryable sister tables   | ✅     |
 
 You can read more about usage and learn about backends and dialects in [the wiki](https://github.com/aplbrain/grand/wiki).
