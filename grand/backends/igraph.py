@@ -14,34 +14,20 @@ def _remove_name_from_attributes(attributes: dict):
 
 class IGraphBackend(Backend):
     """
-    IGraph doesn't support metadata or named nodes, so all node names and
-    metadata must currently be stored in a parallel data structure.
-
-    To solve this problem, a NodeNameManager and MetadataStore, from
-    `grand.backends.metadatastore.NodeNameManager` and
-    `grand.backends.metadatastore.MetadataStore` respectively, are included at
-    the top level of this class. In order to preserve this metadata structure
-    statefully, you must serialize both the graph as well as the data stores.
-
     This is currently UNOPTIMIZED CODE.
 
     Recommendations for future work include improved indexing and caching of
     node names and metadata.
 
-
-
     """
 
     def __init__(self, directed: bool = False):
         """
-        Create a new NetworkitBackend instance, using a Networkit.graph.Graph
-        object to store and manage network structure.
+        Create a new IGraphBackend instance, using an igraph.Graph object to
+        store and manage network structure.
 
         Arguments:
             directed (bool: False): Whether to make the backend graph directed
-            metadata_store (MetadataStore): Optionally, a MetadataStore to use
-                to handle node and edge attributes. If not provided, defaults
-                to a DictMetadataStore.
 
         Returns:
             None
