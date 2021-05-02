@@ -103,3 +103,7 @@ print(G.nx.edges(data=True)) # contains attributes, even though graph is stored 
 | `SQLBackend`      | A graph stored in two SQL-queryable sister tables   | ✅     |
 
 You can read more about usage and learn about backends and dialects in [the wiki](https://github.com/aplbrain/grand/wiki).
+
+---
+
+<p align=center><b>Made with 💙 at <a href="https://jhuapl.edu"><img alt="JHU APL" src="https://user-images.githubusercontent.com/693511/116814564-9b268800-ab27-11eb-98bb-dfddb2e405a1.png" height="23px" /></a></b></p>
