@@ -4,16 +4,13 @@ Grand graph databasifier.
 Aug 2020
 """
 
-import abc
-from typing import Hashable, Generator
-
-import networkx as nx
-
 from .backends import Backend, NetworkXBackend
 from .dialects import NetworkXDialect, IGraphDialect
 
 
 _DEFAULT_BACKEND = NetworkXBackend
+
+__version__ = "0.2.0"
 
 
 class Graph:

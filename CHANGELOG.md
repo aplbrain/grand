@@ -1,6 +1,14 @@
 # CHANGELOG
 
-## **0.1.0** (Unreleased)
+## **0.2.0**
+
+> This version adds a new `IGraphBackend` (non-default install). If you have IGraph installed already, you can now import this backend with `from grand.backends.igraph import IGraphBackend`.
+
+-   Improvements
+    -   Backends
+        -   Add `IGraphBackend` to the list of supported backends
+
+## **0.1.0** (January 19, 2021)
 
 > This version adds dependency-install support to installations with `pip`. (Thanks @Raphtor!)
 

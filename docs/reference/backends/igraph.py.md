@@ -1,17 +1,22 @@
-## *Function* `_dynamo_table_exists(table_name: str, client: boto3.client)`
+## *Class* `IGraphBackend(Backend)`
 
 
-Check to see if the DynamoDB table already exists.
+This is currently UNOPTIMIZED CODE.
+
+Recommendations for future work include improved indexing and caching of node names and metadata.
+
+
+
+## *Function* `__init__(self, directed: bool = False)`
+
+
+Create a new IGraphBackend instance, using an igraph.Graph object to store and manage network structure.
+
+### Arguments
+> - **directed** (`bool`: `False`): Whether to make the backend graph directed
 
 ### Returns
-> - **bool** (`None`: `None`): Whether table exists
-
-
-
-## *Class* `DynamoDBBackend(Backend)`
-
-
-A graph datastore that uses DynamoDB for persistance and queries.
+    None
 
 
 
@@ -28,19 +33,10 @@ Return True if the backend graph is directed.
 
 
 
-## *Function* `teardown(self, yes_i_am_sure: bool = False)`
-
-
-Tear down this graph, deleting all evidence it once was here.
-
-
-
-## *Function* `add_node(self, node_name: Hashable, metadata: dict) -> Hashable`
+## *Function* `add_node(self, node_name: Hashable, metadata: dict)`
 
 
 Add a new node to the graph.
-
-Insert a new document into the nodes table.
 
 ### Arguments
 > - **node_name** (`Hashable`: `None`): The ID of the node
@@ -48,6 +44,19 @@ Insert a new document into the nodes table.
 
 ### Returns
 > - **Hashable** (`None`: `None`): The ID of this node, as inserted
+
+
+
+## *Function* `get_node_by_id(self, node_name: Hashable)`
+
+
+Return the data associated with a node.
+
+### Arguments
+> - **node_name** (`Hashable`: `None`): The node ID to look up
+
+### Returns
+> - **dict** (`None`: `None`): The metadata associated with this node
 
 
 
@@ -104,19 +113,6 @@ Get a list of all edges in this graph, arbitrary sort.
 
 ### Returns
 > - **Generator** (`None`: `None`): A generator of all edges (arbitrary sort)
-
-
-
-## *Function* `get_node_by_id(self, node_name: Hashable)`
-
-
-Return the data associated with a node.
-
-### Arguments
-> - **node_name** (`Hashable`: `None`): The node ID to look up
-
-### Returns
-> - **dict** (`None`: `None`): The metadata associated with this node
 
 
 

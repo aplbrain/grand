@@ -5,6 +5,19 @@ A graph datastore that uses a SQL-like store for persistance and queries.
 
 
 
+## *Function* `is_directed(self) -> bool`
+
+
+Return True if the backend graph is directed.
+
+### Arguments
+    None
+
+### Returns
+> - **bool** (`None`: `None`): True if the backend graph is directed.
+
+
+
 ## *Function* `teardown(self, yes_i_am_sure: bool = False)`
 
 
@@ -28,7 +41,7 @@ Insert a new document into the nodes table.
 
 
 
-## *Function* `all_nodes_as_generator(self, include_metadata: bool = False) -> Generator`
+## *Function* `all_nodes_as_iterable(self, include_metadata: bool = False) -> Generator`
 
 
 Get a generator of all of the nodes in this graph.
@@ -71,7 +84,7 @@ If the graph is directed, this edge will start (source) at the `u` node and end 
 
 
 
-## *Function* `all_edges_as_generator(self, include_metadata: bool = False) -> Generator`
+## *Function* `all_edges_as_iterable(self, include_metadata: bool = False) -> Generator`
 
 
 Get a list of all edges in this graph, arbitrary sort.
@@ -108,4 +121,17 @@ Get an edge by its source and target IDs.
 
 ### Returns
 > - **dict** (`None`: `None`): Metadata associated with this edge
+
+
+
+## *Function* `get_node_count(self) -> Iterable`
+
+
+Get an integer count of the number of nodes in this graph.
+
+### Arguments
+    None
+
+### Returns
+> - **int** (`None`: `None`): The count of nodes
 
