@@ -105,6 +105,8 @@ class NetworkXDialect(nx.Graph):
         return self.parent.backend.add_edge(u, v, kwargs)
 
     def remove_node(self, name: Hashable):
+        if hasattr(self.parent.backend, "remove_node"):
+            return self.parent.backend.remove_node(name)
         raise NotImplementedError
 
     def remove_edge(self, u: Hashable, v: Hashable):
@@ -282,8 +284,10 @@ class NetworkitDialect:
         return self.parent.backend.remove_edge(u, v)
 
     def removeNode(self, u: Hashable) -> None:
+        if hasattr(self.parent.backend, "remove_node"):
+            return self.parent.backend.remove_node(u)
         raise NotImplementedError
-        return self.parent.backend.remove_node(u)
+
 
     def append(self, G):
         raise NotImplementedError
