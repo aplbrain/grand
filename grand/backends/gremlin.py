@@ -22,6 +22,11 @@ def _node_to_metadata(n):
 
 
 class GremlinBackend(Backend):
+    """
+    A backend instance for Gremlin-compatible graph databases.
+
+    """
+
     def __init__(self, graph: GraphTraversalSource, directed: bool = True):
         """
         Create a new Backend instance wrapping a Gremlin endpoint.
@@ -253,8 +258,8 @@ class GremlinBackend(Backend):
 
         """
         if include_metadata:
-            return [
-                {e["target"]: _node_to_metadata(e["properties"])}
+            return {
+                e["target"]: _node_to_metadata(e["properties"])
                 for e in (
                     self._g.V()
                     .has(ID, u)
@@ -265,7 +270,7 @@ class GremlinBackend(Backend):
                     .by(__.valueMap(True))
                     .toList()
                 )
-            ]
+            }
         return self._g.V().has(ID, u).out().values(ID).toList()
 
     def get_node_predecessors(
@@ -282,8 +287,8 @@ class GremlinBackend(Backend):
 
         """
         if include_metadata:
-            return [
-                {e["source"]: e}
+            return {
+                e["source"]: e
                 for e in (
                     self._g.V()
                     .has(ID, u)
@@ -294,7 +299,7 @@ class GremlinBackend(Backend):
                     .by(__.valueMap(True))
                     .toList()
                 )
-            ]
+            }
         return self._g.V().out().has(ID, u).values(ID).toList()
 
     def get_node_count(self) -> Iterable:
