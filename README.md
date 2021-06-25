@@ -1,5 +1,7 @@
 <div align=center><img src="docs/grand.png" width=400 /></div>
 
+<div align=center><img src="https://img.shields.io/pypi/v/grand-graph?style=for-the-badge" /> <img alt="GitHub Workflow Status" src="https://img.shields.io/github/workflow/status/aplbrain/grand/Python%20package?style=for-the-badge"></div>
+
 _Grand_ lets you write your algorithms in one graph library but run them in another.
 
 ## Installation
