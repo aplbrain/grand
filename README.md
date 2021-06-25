@@ -96,16 +96,16 @@ print(G.nx.edges(data=True)) # contains attributes, even though graph is stored 
 | `NetworkXDialect`  | NetworkX-like interface for graph manipulation | ✅     |
 | `NetworkitDialect` | Networkit-like interface (no metadata)         | ✅     |
 
-| Backend            | Description & Notes                                 | Status |
-| ------------------ | --------------------------------------------------- | ------ |
-| `DynamoDBBackend`  | A graph stored in two sister tables in AWS DynamoDB | ✅     |
-| `IGraph`           | An IGraph (`igraph-python`) graph, in memory        | ✅     |
-| `NetworkitBackend` | A Networkit graph, in memory                        | ✅     |
-| `NetworkXBackend`  | A NetworkX graph, in memory                         | ✅     |
-| `SQLBackend`       | A graph stored in two SQL-queryable sister tables   | ✅     |
+| Backend            | Description & Notes                                              | Status |
+| ------------------ | ---------------------------------------------------------------- | ------ |
+| `DynamoDBBackend`  | A graph stored in two sister tables in AWS DynamoDB              | ✅     |
+| `GremlinBackend`   | Compatible with Gremlin queries (e.g. Neptune, Janus, TinkerPop) | ✅     |
+| `IGraphBackend`    | An IGraph (`igraph-python`) graph, in memory                     | ✅     |
+| `NetworkitBackend` | A Networkit graph, in memory                                     | ✅     |
+| `NetworkXBackend`  | A NetworkX graph, in memory                                      | ✅     |
+| `SQLBackend`       | A graph stored in two SQL-queryable sister tables                | ✅     |
 
 You can read more about usage and learn about backends and dialects in [the wiki](https://github.com/aplbrain/grand/wiki).
-
 
 ## Citing
 
@@ -113,17 +113,17 @@ If this tool is helpful to your research, please consider citing it with:
 
 ```bibtex
 # https://doi.org/10.1038/s41598-021-91025-5
-@article{Matelsky_Motifs_2021, 
+@article{Matelsky_Motifs_2021,
     title={{DotMotif: an open-source tool for connectome subgraph isomorphism search and graph queries}},
-    volume={11}, 
-    ISSN={2045-2322}, 
-    url={http://dx.doi.org/10.1038/s41598-021-91025-5}, 
-    DOI={10.1038/s41598-021-91025-5}, 
-    number={1}, 
-    journal={Scientific Reports}, 
-    publisher={Springer Science and Business Media LLC}, 
+    volume={11},
+    ISSN={2045-2322},
+    url={http://dx.doi.org/10.1038/s41598-021-91025-5},
+    DOI={10.1038/s41598-021-91025-5},
+    number={1},
+    journal={Scientific Reports},
+    publisher={Springer Science and Business Media LLC},
     author={Matelsky, Jordan K. and Reilly, Elizabeth P. and Johnson, Erik C. and Stiso, Jennifer and Bassett, Danielle S. and Wester, Brock A. and Gray-Roncal, William},
-    year={2021}, 
+    year={2021},
     month={Jun}
 }
 ```
@@ -131,4 +131,3 @@ If this tool is helpful to your research, please consider citing it with:
 ---
 
 <p align=center><b>Made with 💙 at <a href="https://jhuapl.edu"><img alt="JHU APL" src="https://user-images.githubusercontent.com/693511/116814564-9b268800-ab27-11eb-98bb-dfddb2e405a1.png" height="23px" /></a></b></p>
-
