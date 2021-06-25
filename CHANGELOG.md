@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## **0.3.0**
+
+> This version adds support for Gremlin-compatible graph databases, such as AWS Neptune, TinkerPop, Janus, etc, through the `GremlinBackend`.
+
+-   Improvements
+    -   Backends
+        -   Add `GremlinBackend` to the list of supported backends
+
 ## **0.2.0**
 
 > This version adds a new `IGraphBackend` (non-default install). If you have IGraph installed already, you can now import this backend with `from grand.backends.igraph import IGraphBackend`.
