@@ -22,7 +22,7 @@ def _node_to_metadata(n):
 
 
 class GremlinBackend(Backend):
-    def __init__(self, graph: GraphTraversalSource):
+    def __init__(self, graph: GraphTraversalSource, directed: bool = True):
         """
         Create a new Backend instance wrapping a Gremlin endpoint.
 
@@ -132,9 +132,14 @@ class GremlinBackend(Backend):
 
         """
         if include_metadata:
-            return [_node_to_metadata(n) for n in self._g.V().valueMap(True).toList()]
+            return iter(
+                [
+                    {n[ID][0]: _node_to_metadata(n)}
+                    for n in self._g.V().valueMap(True).toList()
+                ]
+            )
         else:
-            return [n["__id"] for n in self._g.V().project("__id").by("__id").toList()]
+            return iter([n[ID] for n in self._g.V().project(ID).by(ID).toList()])
 
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
         """
@@ -152,21 +157,25 @@ class GremlinBackend(Backend):
             Hashable: The edge ID, as inserted.
 
         """
-        if not self.has_node(u):
-            self.add_node(u, {})
-        if not self.has_node(v):
-            self.add_node(v, {})
-        e = (
-            self._g.V()
-            .has(ID, u)
-            .addE(EDGE_NAME)
-            .as_("e")
-            .to(__.V().has(ID, v))
-            .select("e")
-        )
+        try:
+            self.get_edge_by_id(u, v)
+            e = self._g.V().has(ID, u).outE().as_("e").inV().has(ID, v).select("e")
+        except IndexError:
+            if not self.has_node(u):
+                self.add_node(u, {})
+            if not self.has_node(v):
+                self.add_node(v, {})
+            e = (
+                self._g.V()
+                .has(ID, u)
+                .addE(EDGE_NAME)
+                .as_("e")
+                .to(__.V().has(ID, v))
+                .select("e")
+            )
         for key, val in metadata.items():
             e = e.property(key, val)
-        return e.toList()[0]
+        return e.toList()
 
     def all_edges_as_iterable(self, include_metadata: bool = False) -> Generator:
         """
@@ -180,17 +189,31 @@ class GremlinBackend(Backend):
 
         """
         if include_metadata:
-            # TODO
-            raise NotImplementedError
-        return [
-            (e["source"], e["target"])
-            for e in self._g.V()
-            .outE()
-            .project("target", "source")
-            .by(__.inV().values(ID))
-            .by(__.outV().values(ID))
-            .toList()
-        ]
+            return iter(
+                [
+                    (e["source"], e["target"], _node_to_metadata(e["properties"]))
+                    for e in (
+                        self._g.V()
+                        .outE()
+                        .project("target", "source", "properties")
+                        .by(__.inV().values(ID))
+                        .by(__.outV().values(ID))
+                        .by(__.valueMap(True))
+                        .toList()
+                    )
+                ]
+            )
+        return iter(
+            [
+                (e["source"], e["target"])
+                for e in self._g.V()
+                .outE()
+                .project("target", "source")
+                .by(__.inV().values(ID))
+                .by(__.outV().values(ID))
+                .toList()
+            ]
+        )
 
     def get_edge_by_id(self, u: Hashable, v: Hashable):
         """
@@ -214,7 +237,7 @@ class GremlinBackend(Backend):
             .select("e")
             .properties()
             .toList()
-        )
+        )[0]
 
     def get_node_neighbors(
         self, u: Hashable, include_metadata: bool = False
@@ -230,9 +253,20 @@ class GremlinBackend(Backend):
 
         """
         if include_metadata:
-            # TODO
-            raise NotImplementedError()
-        return self._g.V().has(ID, u).out().toList()
+            return [
+                {e["target"]: _node_to_metadata(e["properties"])}
+                for e in (
+                    self._g.V()
+                    .has(ID, u)
+                    .outE()
+                    .project("target", "source", "properties")
+                    .by(__.inV().values(ID))
+                    .by(__.outV().values(ID))
+                    .by(__.valueMap(True))
+                    .toList()
+                )
+            ]
+        return self._g.V().has(ID, u).out().values(ID).toList()
 
     def get_node_predecessors(
         self, u: Hashable, include_metadata: bool = False
@@ -248,9 +282,20 @@ class GremlinBackend(Backend):
 
         """
         if include_metadata:
-            # TODO
-            raise NotImplementedError()
-        return self._g.V().out().has(ID, u).toList()
+            return [
+                {e["source"]: e}
+                for e in (
+                    self._g.V()
+                    .has(ID, u)
+                    .inE()
+                    .project("target", "source", "properties")
+                    .by(__.inV().values(ID))
+                    .by(__.outV().values(ID))
+                    .by(__.valueMap(True))
+                    .toList()
+                )
+            ]
+        return self._g.V().out().has(ID, u).values(ID).toList()
 
     def get_node_count(self) -> Iterable:
         """
