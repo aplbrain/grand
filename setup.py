@@ -3,11 +3,10 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-["sqlalchemy"]
 
 setuptools.setup(
     name="grand-graph",
-    version="0.2.0",
+    version="0.2.1",
     author="Jordan Matelsky",
     author_email="opensource@matelsky.com",
     description="Graph database wrapper for non-graph datastores",
