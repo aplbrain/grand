@@ -20,6 +20,10 @@ setuptools.setup(
         "numpy",
         "pandas",
     ],
+    extra_requires={
+        "sql": ["SQLAlchemy>=1.3"],
+        "dynamodb": ["boto3"],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
