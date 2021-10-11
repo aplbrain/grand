@@ -16,11 +16,9 @@ setuptools.setup(
     url="https://github.com/aplbrain/grand",
     packages=setuptools.find_packages(),
     install_requires=[
-        "boto3",
-        "networkx==2.4",
-        "numpy==1.19.1",
-        "pandas==1.1.0",
-        "SQLAlchemy==1.3.18",
+        "networkx>=2.4",
+        "numpy",
+        "pandas",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
