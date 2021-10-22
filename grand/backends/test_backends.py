@@ -30,22 +30,30 @@ backend_test_params = [
             reason="NetworkX Backend skipped because $TEST_NETWORKXBACKEND != 0.",
         ),
     ),
-    pytest.param(
-        SQLBackend,
-        marks=pytest.mark.skipif(
-            os.environ.get("TEST_SQLBACKEND", default="1") != "1"
-            or not _CAN_IMPORT_SQL,
-            reason="SQL Backend skipped because $TEST_SQLBACKEND != 0 or sqlalchemy is not installed.",
-        ),
-    ),
-    pytest.param(
-        DynamoDBBackend,
-        marks=pytest.mark.skipif(
-            os.environ.get("TEST_DYNAMODBBACKEND") != "1" or not _CAN_IMPORT_DYNAMODB,
-            reason="DynamoDB Backend skipped either because boto3 wasn't installed, or $TEST_DYNAMODBBACKEND != 0.",
-        ),
-    ),
 ]
+
+if _CAN_IMPORT_DYNAMODB:
+    backend_test_params.append(
+        pytest.param(
+            DynamoDBBackend,
+            marks=pytest.mark.skipif(
+                os.environ.get("TEST_DYNAMODB", default="1") != "1",
+                reason="DynamoDB Backend skipped because $TEST_DYNAMODB != 0 or boto3 is not installed",
+            ),
+        ),
+    )
+
+if _CAN_IMPORT_SQL:
+    backend_test_params.append(
+        pytest.param(
+            SQLBackend,
+            marks=pytest.mark.skipif(
+                os.environ.get("TEST_SQLBACKEND", default="1") != "1"
+                or not _CAN_IMPORT_SQL,
+                reason="SQL Backend skipped because $TEST_SQLBACKEND != 0 or sqlalchemy is not installed.",
+            ),
+        ),
+    )
 
 if os.environ.get("TEST_NETWORKITBACKEND") == "1":
     from .networkit import NetworkitBackend
