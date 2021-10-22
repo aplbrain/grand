@@ -155,7 +155,7 @@ class TestBackend:
         assert G.nx._adj == nxG._adj
 
     def test_directed_adj(self, backend):
-        G = Graph(backend=SQLBackend(directed=True))
+        G = Graph(backend=backend(directed=True))
         nxG = nx.DiGraph()
         assert G.nx._adj == nxG._adj
         G.nx.add_edge("A", "B")
