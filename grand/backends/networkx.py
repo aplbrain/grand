@@ -1,7 +1,6 @@
 from typing import Hashable, Generator, Iterable
 import time
 
-import boto3
 import pandas as pd
 import networkx as nx
 
