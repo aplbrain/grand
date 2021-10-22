@@ -1,6 +1,17 @@
 from .backend import Backend
-from .dynamodb import DynamoDBBackend
-from .networkx import NetworkXBackend
-from .sqlbackend import SQLBackend
 
-# from .networkit import NetworkitBackend
+try:
+    from .dynamodb import DynamoDBBackend
+except ImportError:
+    pass
+from .networkx import NetworkXBackend
+
+try:
+    from .sqlbackend import SQLBackend
+except ImportError:
+    pass
+
+try:
+    from .networkit import NetworkitBackend
+except ImportError:
+    pass

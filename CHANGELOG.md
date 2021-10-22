@@ -2,11 +2,13 @@
 
 ## **0.3.0**
 
-> This version adds support for Gremlin-compatible graph databases, such as AWS Neptune, TinkerPop, Janus, etc, through the `GremlinBackend`.
+> This version adds support for Gremlin-compatible graph databases, such as AWS Neptune, TinkerPop, Janus, etc, through the `GremlinBackend`, and loosens the requirements for the base installation of `grand-graph`. You can now install `grand-graph[sql]` or `grand-graph[dynamodb]` to get additional functionality (with additional dependencies).
 
 -   Improvements
     -   Backends
         -   Add `GremlinBackend` to the list of supported backends
+-   Housekeeping
+    -   Removes sqlalchemy and boto3 from the list of requirements for the base install. You can now install these with `pip3 install grand-graph[sql]` or `[dyanmodb]`.
 
 ## **0.2.0**
 

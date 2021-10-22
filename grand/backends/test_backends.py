@@ -3,8 +3,24 @@ import os
 
 import networkx as nx
 
-from . import NetworkXBackend, SQLBackend, DynamoDBBackend
+from . import NetworkXBackend
+
+try:
+    from .dynamodb import DynamoDBBackend
+
+    _CAN_IMPORT_DYNAMODB = True
+except ImportError:
+    _CAN_IMPORT_DYNAMODB = False
+
+try:
+    from .sqlbackend import SQLBackend
+
+    _CAN_IMPORT_SQL = True
+except ImportError:
+    _CAN_IMPORT_SQL = False
+
 from .. import Graph
+
 
 backend_test_params = [
     pytest.param(
@@ -14,21 +30,30 @@ backend_test_params = [
             reason="NetworkX Backend skipped because $TEST_NETWORKXBACKEND != 0.",
         ),
     ),
-    pytest.param(
-        SQLBackend,
-        marks=pytest.mark.skipif(
-            os.environ.get("TEST_SQLBACKEND", default="1") != "1",
-            reason="SQL Backend skipped because $TEST_SQLBACKEND != 0.",
-        ),
-    ),
-    pytest.param(
-        DynamoDBBackend,
-        marks=pytest.mark.skipif(
-            os.environ.get("TEST_DYNAMODBBACKEND") != "1",
-            reason="DynamoDB Backend skipped because $TEST_DYNAMODBBACKEND != 0.",
-        ),
-    ),
 ]
+
+if _CAN_IMPORT_DYNAMODB:
+    backend_test_params.append(
+        pytest.param(
+            DynamoDBBackend,
+            marks=pytest.mark.skipif(
+                os.environ.get("TEST_DYNAMODB", default="1") != "1",
+                reason="DynamoDB Backend skipped because $TEST_DYNAMODB != 0 or boto3 is not installed",
+            ),
+        ),
+    )
+
+if _CAN_IMPORT_SQL:
+    backend_test_params.append(
+        pytest.param(
+            SQLBackend,
+            marks=pytest.mark.skipif(
+                os.environ.get("TEST_SQLBACKEND", default="1") != "1"
+                or not _CAN_IMPORT_SQL,
+                reason="SQL Backend skipped because $TEST_SQLBACKEND != 0 or sqlalchemy is not installed.",
+            ),
+        ),
+    )
 
 if os.environ.get("TEST_NETWORKITBACKEND") == "1":
     from .networkit import NetworkitBackend
@@ -93,7 +118,7 @@ class TestBackend:
     def test_can_get_edge(self, backend):
         G = Graph(backend=backend())
         nxG = nx.Graph()
-        md = {"k":"B"}
+        md = {"k": "B"}
         G.nx.add_edge("A", "B", **md)
         nxG.add_edge("A", "B", **md)
         assert G.nx.get_edge_data("A", "B") == nxG.get_edge_data("A", "B")
@@ -130,7 +155,7 @@ class TestBackend:
         assert G.nx._adj == nxG._adj
 
     def test_directed_adj(self, backend):
-        G = Graph(backend=SQLBackend(directed=True))
+        G = Graph(backend=backend(directed=True))
         nxG = nx.DiGraph()
         assert G.nx._adj == nxG._adj
         G.nx.add_edge("A", "B")
