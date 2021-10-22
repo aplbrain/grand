@@ -1,5 +1,9 @@
 from .backend import Backend
-from .dynamodb import DynamoDBBackend
+
+try:
+    from .dynamodb import DynamoDBBackend
+except ImportError:
+    pass
 from .networkx import NetworkXBackend
 from .sqlbackend import SQLBackend
 

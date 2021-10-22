@@ -3,7 +3,15 @@ import os
 
 import networkx as nx
 
-from . import NetworkXBackend, SQLBackend, DynamoDBBackend
+from . import NetworkXBackend, SQLBackend
+
+# DynamoDBBackend
+try:
+    from .dynamodb import DynamoDBBackend
+
+    _CAN_IMPORT_DYNAMODB = True
+except ImportError:
+    _CAN_IMPORT_DYNAMODB = False
 from .. import Graph
 
 backend_test_params = [
@@ -24,8 +32,8 @@ backend_test_params = [
     pytest.param(
         DynamoDBBackend,
         marks=pytest.mark.skipif(
-            os.environ.get("TEST_DYNAMODBBACKEND") != "1",
-            reason="DynamoDB Backend skipped because $TEST_DYNAMODBBACKEND != 0.",
+            os.environ.get("TEST_DYNAMODBBACKEND") != "1" or not _CAN_IMPORT_DYNAMODB,
+            reason="DynamoDB Backend skipped either because boto3 wasn't installed, or $TEST_DYNAMODBBACKEND != 0.",
         ),
     ),
 ]
@@ -93,7 +101,7 @@ class TestBackend:
     def test_can_get_edge(self, backend):
         G = Graph(backend=backend())
         nxG = nx.Graph()
-        md = {"k":"B"}
+        md = {"k": "B"}
         G.nx.add_edge("A", "B", **md)
         nxG.add_edge("A", "B", **md)
         assert G.nx.get_edge_data("A", "B") == nxG.get_edge_data("A", "B")
