@@ -3,16 +3,24 @@ import os
 
 import networkx as nx
 
-from . import NetworkXBackend, SQLBackend
+from . import NetworkXBackend
 
-# DynamoDBBackend
 try:
     from .dynamodb import DynamoDBBackend
 
     _CAN_IMPORT_DYNAMODB = True
 except ImportError:
     _CAN_IMPORT_DYNAMODB = False
+
+try:
+    from .sqlbackend import SQLBackend
+
+    _CAN_IMPORT_SQL = True
+except ImportError:
+    _CAN_IMPORT_SQL = False
+
 from .. import Graph
+
 
 backend_test_params = [
     pytest.param(
@@ -25,8 +33,9 @@ backend_test_params = [
     pytest.param(
         SQLBackend,
         marks=pytest.mark.skipif(
-            os.environ.get("TEST_SQLBACKEND", default="1") != "1",
-            reason="SQL Backend skipped because $TEST_SQLBACKEND != 0.",
+            os.environ.get("TEST_SQLBACKEND", default="1") != "1"
+            or not _CAN_IMPORT_SQL,
+            reason="SQL Backend skipped because $TEST_SQLBACKEND != 0 or sqlalchemy is not installed.",
         ),
     ),
     pytest.param(

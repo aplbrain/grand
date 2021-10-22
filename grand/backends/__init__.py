@@ -5,6 +5,13 @@ try:
 except ImportError:
     pass
 from .networkx import NetworkXBackend
-from .sqlbackend import SQLBackend
 
-# from .networkit import NetworkitBackend
+try:
+    from .sqlbackend import SQLBackend
+except ImportError:
+    pass
+
+try:
+    from .networkit import NetworkitBackend
+except ImportError:
+    pass
