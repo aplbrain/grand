@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## *??*
+
+> This version is currently unreleased.
+
+-   Improvements
+    -   Backends
+        -   SQLBackend: Adds support for user-specified edge column names, with `edge_table_source_column` and `edge_table_target_column` arguments.
+
 ## **0.3.0**
 
 > This version adds support for Gremlin-compatible graph databases, such as AWS Neptune, TinkerPop, Janus, etc, through the `GremlinBackend`, and loosens the requirements for the base installation of `grand-graph`. You can now install `grand-graph[sql]` or `grand-graph[dynamodb]` to get additional functionality (with additional dependencies).
