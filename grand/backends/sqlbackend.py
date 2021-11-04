@@ -27,6 +27,8 @@ class SQLBackend(Backend):
         db_url: str = _DEFAULT_SQL_URL,
         primary_key: str = "ID",
         sqlalchemy_kwargs: dict = None,
+        edge_table_source_column: str = None,
+        edge_table_target_column: str = None,
     ) -> None:
         """
         Create a new SQL-backed graph store.
@@ -39,6 +41,10 @@ class SQLBackend(Backend):
             db_url (str: _DEFAULT_SQL_URL): The URL to use for the SQL db.
             primary_key (str: "ID"): The default primary key to use for the
                 tables. Note that this key cannot exist in your metadata dicts.
+            edge_table_source_column (str: None): The name of the column to use
+                for the source node in the edge table.
+            edge_table_target_column (str: None): The name of the column to use
+                for the target node in the edge table.
 
         """
         self._directed = directed
@@ -46,8 +52,8 @@ class SQLBackend(Backend):
         self._edge_table_name = edge_table_name or "grand_Edges"
 
         self._primary_key = primary_key
-        self._edge_source_key = "Source"
-        self._edge_target_key = "Target"
+        self._edge_source_key = edge_table_source_column or "Source"
+        self._edge_target_key = edge_table_target_column or "Target"
 
         sqlalchemy_kwargs = sqlalchemy_kwargs or {}
         self._engine = sqlalchemy.create_engine(db_url, **sqlalchemy_kwargs)
