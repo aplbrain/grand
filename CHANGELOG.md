@@ -9,6 +9,7 @@
         -   SQLBackend:
             -   Add support for user-specified edge column names, with `edge_table_source_column` and `edge_table_target_column` arguments.
             -   Fix buggy performance when updating nodes and edges.
+        -   Caching support. You can now cache the results from backend methods by wrapping with a class that inherits from `CachedBackend`.
 -   Housekeeping
     -   Fix `pip install grand-graph[sql]` and `pip install grand-graph[dynamodb]`, which failed on previous versions due to a faulty setup.py key.
     -   Rename all backend files.

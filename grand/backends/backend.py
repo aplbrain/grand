@@ -1,4 +1,5 @@
-from typing import Hashable, Collection, Iterable
+import cachetools.func
+from typing import Callable, Hashable, Collection
 import abc
 
 import pandas as pd
@@ -253,3 +254,122 @@ class Backend(abc.ABC):
             return {node: self.out_degree(node) for node in nbunch}
         else:
             return self.out_degree(nbunch)
+
+
+class CachedBackend(Backend):
+
+    """
+    A proxy Backend that serves as a cache for any other grand.Backend.
+
+    """
+
+    def __init__(self, backend: Backend):
+        ...
+
+
+class InMemoryCachedBackend(CachedBackend):
+
+    """
+    A proxy Backend that serves as a cache for any other grand.Backend.
+
+    Wraps each call to the Backend with an LRU cache.
+
+    """
+
+    _cache_types = {
+        "LRUCache": cachetools.func.lru_cache,
+        "TTLCache": cachetools.func.ttl_cache,
+        "LFUCache": cachetools.func.lfu_cache,
+    }
+
+    _default_uncacheable_methods = [
+        "add_node",
+        "add_edge",
+        "ingest_from_edgelist_dataframe",
+    ]
+
+    _default_write_methods = [
+        "add_node",
+        "add_edge",
+        "ingest_from_edgelist_dataframe",
+    ]
+
+    def __init__(
+        self,
+        backend: Backend,
+        dirty_cache_on_write: bool = True,
+        cache_type: str = "TTLCache",
+        uncacheable_methods: list = None,
+        write_methods: list = None,
+        **cache_kwargs,
+    ):
+        """
+        Initialize a new in-memory cache, using the cachetools library.
+
+        Arguments:
+            backend (grand.Backend): The backend to cache
+            dirty_cache_on_write (bool): Whether to clear the cache on writes
+            cache_type (str: "TTLCache"): The cache type to use. One of
+                ["LRUCache", "TTLCache"]
+            **cache_kwargs: Additional arguments to pass to the cache
+
+
+        """
+        self.backend = backend
+        self._dirty_cache_on_write = dirty_cache_on_write
+        self._uncacheable_methods = (
+            uncacheable_methods or self._default_uncacheable_methods
+        )
+        self._write_methods = write_methods or self._default_write_methods
+        if cache_type not in self._cache_types:
+            raise ValueError(
+                f"Unknown cache type: {cache_type}. "
+                f"Valid types are: {self._cache_types.keys()}"
+            )
+        self._cache_factory = lambda: self._cache_types[cache_type](**cache_kwargs)
+
+        self._method_lookup = {}
+
+        def _dirty_cache_decorator(method_: Callable):
+            def dirty_cache_dec_wrapper(*args, **kwargs):
+                self.clear_cache()
+                return method_(*args, **kwargs)
+
+            return dirty_cache_dec_wrapper
+
+        method_list = [
+            attribute
+            for attribute in dir(self.backend)
+            if callable(getattr(self.backend, attribute))
+            and not attribute.startswith("_")
+        ]
+        for method in method_list:
+            if method in self._uncacheable_methods:
+                setattr(self, method, getattr(self.backend, method))
+            else:
+                wrapped = self._wrapped(method)
+                self._method_lookup[method] = wrapped
+                setattr(self, method, wrapped)
+
+            if self._dirty_cache_on_write and method in self._write_methods:
+                setattr(
+                    self, method, _dirty_cache_decorator(getattr(self.backend, method))
+                )
+
+    def _wrapped(self, method: str) -> Callable:
+        c = self._cache_factory()(getattr(self.backend, method))
+        return c
+
+    def clear_cache(self):
+        """
+        Clear the cache.
+
+        """
+        for _, method in self._method_lookup.items():
+            method.cache_clear()
+
+    def cache_info(self):
+        return {
+            method_name: method.cache_info()
+            for method_name, method in self._method_lookup.items()
+        }
