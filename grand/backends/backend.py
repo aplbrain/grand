@@ -209,6 +209,11 @@ class Backend(abc.ABC):
         """
         return len(self.get_node_neighbors(u))
 
+    def degrees(self, nbunch=None) -> Collection:
+        return {
+            node: self.degree(node) for node in (nbunch or self.all_nodes_as_iterable())
+        }
+
     def in_degree(self, u: Hashable) -> int:
         """
         Get the in-degree of a node.
@@ -220,7 +225,13 @@ class Backend(abc.ABC):
             int: The in-degree of the node
 
         """
-        return len(self.get_node_predecessors(u))
+        return len(list(self.get_node_predecessors(u)))
+
+    def in_degrees(self, nbunch=None) -> Collection:
+        return {
+            node: self.in_degree(node)
+            for node in (nbunch or self.all_nodes_as_iterable())
+        }
 
     def out_degree(self, u: Hashable) -> int:
         """
@@ -233,4 +244,10 @@ class Backend(abc.ABC):
             int: The out-degree of the node
 
         """
-        return len(self.get_node_successors(u))
+        return len(list(self.get_node_successors(u)))
+
+    def out_degrees(self, nbunch=None) -> Collection:
+        return {
+            node: self.out_degree(node)
+            for node in (nbunch or self.all_nodes_as_iterable())
+        }
