@@ -1,4 +1,4 @@
-from .backend import Backend
+from .backend import Backend, CachedBackend, InMemoryCachedBackend
 
 try:
     from ._dynamodb import DynamoDBBackend
@@ -18,6 +18,8 @@ except ImportError:
 
 __all__ = [
     "Backend",
+    "CachedBackend",
+    "InMemoryCachedBackend",
     "NetworkXBackend",
     "DynamoDBBackend",
     "SQLBackend",
