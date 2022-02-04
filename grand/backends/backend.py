@@ -282,19 +282,29 @@ class InMemoryCachedBackend(CachedBackend):
         "LFUCache": cachetools.func.lfu_cache,
     }
 
-    _uncacheable_methods = ["add_node", "add_edge", "ingest_from_edgelist_dataframe"]
+    _default_uncacheable_methods = [
+        "add_node",
+        "add_edge",
+        "ingest_from_edgelist_dataframe",
+    ]
 
-    _write_methods = ["add_node", "add_edge", "ingest_from_edgelist_dataframe"]
+    _default_write_methods = [
+        "add_node",
+        "add_edge",
+        "ingest_from_edgelist_dataframe",
+    ]
 
     def __init__(
         self,
         backend: Backend,
         dirty_cache_on_write: bool = True,
         cache_type: str = "TTLCache",
+        uncacheable_methods: list = None,
+        write_methods: list = None,
         **cache_kwargs,
     ):
         """
-        Initialize the cache.
+        Initialize a new in-memory cache, using the cachetools library.
 
         Arguments:
             backend (grand.Backend): The backend to cache
@@ -307,6 +317,10 @@ class InMemoryCachedBackend(CachedBackend):
         """
         self.backend = backend
         self._dirty_cache_on_write = dirty_cache_on_write
+        self._uncacheable_methods = (
+            uncacheable_methods or self._default_uncacheable_methods
+        )
+        self._write_methods = write_methods or self._default_write_methods
         if cache_type not in self._cache_types:
             raise ValueError(
                 f"Unknown cache type: {cache_type}. "
