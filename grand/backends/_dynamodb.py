@@ -1,4 +1,4 @@
-from typing import Hashable, Generator, Optional, Iterable
+from typing import Collection, Hashable, Optional
 import time
 import concurrent.futures
 
@@ -26,7 +26,10 @@ def _dynamo_table_exists(table_name: str, client: boto3.client):
 
 
 def _create_dynamo_table(
-    table_name: str, primary_key: str, client, read_write_units: Optional[int] = None,
+    table_name: str,
+    primary_key: str,
+    client,
+    read_write_units: Optional[int] = None,
 ):
     if read_write_units is not None:
         raise NotImplementedError("Non-on-demand billing is not currently supported.")
@@ -174,7 +177,7 @@ class DynamoDBBackend(Backend):
             done = start_key is None
         return results
 
-    def all_nodes_as_iterable(self, include_metadata: bool = False) -> Generator:
+    def all_nodes_as_iterable(self, include_metadata: bool = False) -> Collection:
         """
         Get a generator of all of the nodes in this graph.
 
@@ -249,7 +252,7 @@ class DynamoDBBackend(Backend):
 
         return response
 
-    def all_edges_as_iterable(self, include_metadata: bool = False) -> Generator:
+    def all_edges_as_iterable(self, include_metadata: bool = False) -> Collection:
         """
         Get a list of all edges in this graph, arbitrary sort.
 
@@ -305,7 +308,7 @@ class DynamoDBBackend(Backend):
 
     def get_node_neighbors(
         self, u: Hashable, include_metadata: bool = False
-    ) -> Generator:
+    ) -> Collection:
         """
         Get a generator of all downstream nodes from this node.
 
@@ -320,7 +323,9 @@ class DynamoDBBackend(Backend):
             # Return only edges for which `u` is the source
             res = self._scan_table(
                 self._edge_table,
-                {"FilterExpression": Key(self._primary_key).begins_with(f"__{u}__"),},
+                {
+                    "FilterExpression": Key(self._primary_key).begins_with(f"__{u}__"),
+                },
             )
 
         else:
@@ -360,7 +365,7 @@ class DynamoDBBackend(Backend):
 
     def get_node_predecessors(
         self, u: Hashable, include_metadata: bool = False
-    ) -> Generator:
+    ) -> Collection:
         """
         Get a generator of all upstream nodes from this node.
 
@@ -375,7 +380,9 @@ class DynamoDBBackend(Backend):
             # Return only edges for which `u` is the target
             res = self._scan_table(
                 self._edge_table,
-                {"FilterExpression": Key(self._edge_target_key).eq(u),},
+                {
+                    "FilterExpression": Key(self._edge_target_key).eq(u),
+                },
             )
 
         else:
@@ -413,7 +420,7 @@ class DynamoDBBackend(Backend):
             ]
         )
 
-    def get_node_count(self) -> Iterable:
+    def get_node_count(self) -> int:
         """
         Get an integer count of the number of nodes in this graph.
 
@@ -432,7 +439,7 @@ class DynamoDBBackend(Backend):
 
     def ingest_from_edgelist_dataframe(
         self, edgelist: pd.DataFrame, source_column: str, target_column: str
-    ) -> None:
+    ) -> dict:
         """
         Ingest an edgelist from a Pandas DataFrame.
 

@@ -1,4 +1,4 @@
-from typing import Hashable, Generator, Iterable
+from typing import Hashable, Collection
 
 from igraph import Graph, InternalError
 import pandas as pd
@@ -89,7 +89,7 @@ class IGraphBackend(Backend):
             self._ig.vs.find(name=node_name).attributes()
         )
 
-    def all_nodes_as_iterable(self, include_metadata: bool = False) -> Generator:
+    def all_nodes_as_iterable(self, include_metadata: bool = False) -> Collection:
         """
         Get a generator of all of the nodes in this graph.
 
@@ -149,7 +149,7 @@ class IGraphBackend(Backend):
             self.add_node(v, {})
         return self._ig.add_edge(source=u, target=v, **metadata)
 
-    def all_edges_as_iterable(self, include_metadata: bool = False) -> Generator:
+    def all_edges_as_iterable(self, include_metadata: bool = False) -> Collection:
         """
         Get a list of all edges in this graph, arbitrary sort.
 
@@ -195,12 +195,12 @@ class IGraphBackend(Backend):
 
     def get_node_successors(
         self, u: Hashable, include_metadata: bool = False
-    ) -> Generator:
+    ) -> Collection:
         return self.get_node_neighbors(u, include_metadata)
 
     def get_node_neighbors(
         self, u: Hashable, include_metadata: bool = False
-    ) -> Generator:
+    ) -> Collection:
         """
         Get a generator of all downstream nodes from this node.
 
@@ -221,7 +221,7 @@ class IGraphBackend(Backend):
 
     def get_node_predecessors(
         self, u: Hashable, include_metadata: bool = False
-    ) -> Generator:
+    ) -> Collection:
         """
         Get a generator of all upstream nodes from this node.
 
@@ -240,7 +240,7 @@ class IGraphBackend(Backend):
         else:
             return iter([self._ig.vs[s]["name"] for s in self._ig.predecessors(u)])
 
-    def get_node_count(self) -> Iterable:
+    def get_node_count(self) -> int:
         """
         Get an integer count of the number of nodes in this graph.
 

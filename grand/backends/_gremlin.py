@@ -2,8 +2,7 @@
 https://tinkerpop.apache.org/docs/current/reference/
 """
 
-from typing import Hashable, Generator, Iterable
-import time
+from typing import Hashable, Collection
 
 import pandas as pd
 from gremlin_python.structure.graph import Graph
@@ -124,7 +123,7 @@ class GremlinBackend(Backend):
         """
         return self._g.V().has(ID, node_name).drop().toList()
 
-    def all_nodes_as_iterable(self, include_metadata: bool = False) -> Generator:
+    def all_nodes_as_iterable(self, include_metadata: bool = False) -> Collection:
         """
         Get a generator of all of the nodes in this graph.
 
@@ -182,7 +181,7 @@ class GremlinBackend(Backend):
             e = e.property(key, val)
         return e.toList()
 
-    def all_edges_as_iterable(self, include_metadata: bool = False) -> Generator:
+    def all_edges_as_iterable(self, include_metadata: bool = False) -> Collection:
         """
         Get a list of all edges in this graph, arbitrary sort.
 
@@ -246,7 +245,7 @@ class GremlinBackend(Backend):
 
     def get_node_neighbors(
         self, u: Hashable, include_metadata: bool = False
-    ) -> Generator:
+    ) -> Collection:
         """
         Get a generator of all downstream nodes from this node.
 
@@ -275,7 +274,7 @@ class GremlinBackend(Backend):
 
     def get_node_predecessors(
         self, u: Hashable, include_metadata: bool = False
-    ) -> Generator:
+    ) -> Collection:
         """
         Get a generator of all downstream nodes from this node.
 
@@ -302,7 +301,7 @@ class GremlinBackend(Backend):
             }
         return self._g.V().out().has(ID, u).values(ID).toList()
 
-    def get_node_count(self) -> Iterable:
+    def get_node_count(self) -> int:
         """
         Get an integer count of the number of nodes in this graph.
 

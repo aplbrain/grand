@@ -1,4 +1,4 @@
-from typing import Hashable, Iterable
+from typing import Hashable, Collection
 import abc
 
 import pandas as pd
@@ -77,7 +77,7 @@ class Backend(abc.ABC):
         """
         ...
 
-    def all_nodes_as_iterable(self, include_metadata: bool = False) -> Iterable:
+    def all_nodes_as_iterable(self, include_metadata: bool = False) -> Collection:
         """
         Get a generator of all of the nodes in this graph.
 
@@ -121,7 +121,7 @@ class Backend(abc.ABC):
         """
         ...
 
-    def all_edges_as_iterable(self, include_metadata: bool = False) -> Iterable:
+    def all_edges_as_iterable(self, include_metadata: bool = False) -> Collection:
         """
         Get a list of all edges in this graph, arbitrary sort.
 
@@ -150,12 +150,12 @@ class Backend(abc.ABC):
 
     def get_node_successors(
         self, u: Hashable, include_metadata: bool = False
-    ) -> Iterable:
+    ) -> Collection:
         return self.get_node_neighbors(u, include_metadata)
 
     def get_node_neighbors(
         self, u: Hashable, include_metadata: bool = False
-    ) -> Iterable:
+    ) -> Collection:
         """
         Get a generator of all downstream nodes from this node.
 
@@ -170,7 +170,7 @@ class Backend(abc.ABC):
 
     def get_node_predecessors(
         self, u: Hashable, include_metadata: bool = False
-    ) -> Iterable:
+    ) -> Collection:
         """
         Get a generator of all upstream nodes from this node.
 
@@ -183,7 +183,7 @@ class Backend(abc.ABC):
         """
         ...
 
-    def get_node_count(self) -> Iterable:
+    def get_node_count(self) -> int:
         """
         Get an integer count of the number of nodes in this graph.
 
@@ -195,3 +195,42 @@ class Backend(abc.ABC):
 
         """
         return len([i for i in self.all_nodes_as_iterable()])
+
+    def degree(self, u: Hashable) -> int:
+        """
+        Get the degree of a node.
+
+        Arguments:
+            u (Hashable): The node ID
+
+        Returns:
+            int: The degree of the node
+
+        """
+        return len(self.get_node_neighbors(u))
+
+    def in_degree(self, u: Hashable) -> int:
+        """
+        Get the in-degree of a node.
+
+        Arguments:
+            u (Hashable): The node ID
+
+        Returns:
+            int: The in-degree of the node
+
+        """
+        return len(self.get_node_predecessors(u))
+
+    def out_degree(self, u: Hashable) -> int:
+        """
+        Get the out-degree of a node.
+
+        Arguments:
+            u (Hashable): The node ID
+
+        Returns:
+            int: The out-degree of the node
+
+        """
+        return len(self.get_node_successors(u))
