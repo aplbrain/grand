@@ -14,11 +14,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/aplbrain/grand",
     packages=setuptools.find_packages(),
-    install_requires=[
-        "networkx>=2.4",
-        "numpy",
-        "pandas",
-    ],
+    install_requires=["networkx>=2.4", "numpy", "pandas", "cachetools"],
     extras_require={
         "sql": ["SQLAlchemy>=1.3"],
         "dynamodb": ["boto3"],
