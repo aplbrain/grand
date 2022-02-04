@@ -166,6 +166,12 @@ class NetworkXDialect(nx.Graph):
         """
         return _GrandAdjacencyView(self, "pred")
 
+    def in_degree(self, nbunch=None):
+        return self.parent.backend.in_degrees(nbunch)
+
+    def out_degree(self, nbunch=None):
+        return self.parent.backend.out_degrees(nbunch)
+
 
 class IGraphDialect(nx.Graph):
     """
@@ -255,13 +261,13 @@ class NetworkitDialect:
         return self.parent.backend.has_node(u)
 
     def degree(self, v):
-        return len(self.parent.backend.get_node_neighbors(v))
+        return self.parent.backend.degree(v)
 
     def degreeIn(self, v):
-        return len(self.parent.backend.get_node_predecessors(v))
+        return self.parent.backend.in_degree(v)
 
     def degreeOut(self, v):
-        return len(self.parent.backend.get_node_successors(v))
+        return self.parent.backend.out_degree(v)
 
     def density(self):
         # TODO: implement backend#degree?
@@ -287,7 +293,6 @@ class NetworkitDialect:
         if hasattr(self.parent.backend, "remove_node"):
             return self.parent.backend.remove_node(u)
         raise NotImplementedError
-
 
     def append(self, G):
         raise NotImplementedError

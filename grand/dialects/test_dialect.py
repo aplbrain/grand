@@ -22,6 +22,24 @@ class TestNetworkXDialect(unittest.TestCase):
         H.add_edge("1", "3")
         self.assertEqual(G.nx.pred, H.pred)
 
+    def test_in_degree(self):
+        G = Graph(directed=True)
+        G.nx.add_edge("1", "2")
+        G.nx.add_edge("1", "3")
+        H = nx.DiGraph()
+        H.add_edge("1", "2")
+        H.add_edge("1", "3")
+        self.assertEqual(dict(G.nx.in_degree()), dict(H.in_degree()))
+
+    def test_out_degree(self):
+        G = Graph(directed=True)
+        G.nx.add_edge("1", "2")
+        G.nx.add_edge("1", "3")
+        H = nx.DiGraph()
+        H.add_edge("1", "2")
+        H.add_edge("1", "3")
+        self.assertEqual(dict(G.nx.out_degree()), dict(H.out_degree()))
+
 
 # class TestDotMotifDialect(unittest.TestCase):
 #     def test_dm_monomorphism_undirected(self):

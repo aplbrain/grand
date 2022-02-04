@@ -1,4 +1,4 @@
-from typing import Hashable, Generator, Iterable
+from typing import Hashable, Collection
 import time
 
 import pandas as pd
@@ -62,7 +62,7 @@ class NetworkXBackend(Backend):
         """
         return self._nx_graph.nodes[node_name]
 
-    def all_nodes_as_iterable(self, include_metadata: bool = False) -> Generator:
+    def all_nodes_as_iterable(self, include_metadata: bool = False) -> Collection:
         """
         Get a generator of all of the nodes in this graph.
 
@@ -74,7 +74,7 @@ class NetworkXBackend(Backend):
             Generator: A generator of all nodes (arbitrary sort)
 
         """
-        return self._nx_graph.nodes(data=include_metadata)
+        return list(self._nx_graph.nodes(data=include_metadata))
 
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
         """
@@ -94,7 +94,7 @@ class NetworkXBackend(Backend):
         """
         self._nx_graph.add_edge(u, v, **metadata)
 
-    def all_edges_as_iterable(self, include_metadata: bool = False) -> Generator:
+    def all_edges_as_iterable(self, include_metadata: bool = False) -> Collection:
         """
         Get a list of all edges in this graph, arbitrary sort.
 
@@ -123,7 +123,7 @@ class NetworkXBackend(Backend):
 
     def get_node_neighbors(
         self, u: Hashable, include_metadata: bool = False
-    ) -> Generator:
+    ) -> Collection:
         """
         Get a generator of all downstream nodes from this node.
 
@@ -140,7 +140,7 @@ class NetworkXBackend(Backend):
 
     def get_node_predecessors(
         self, u: Hashable, include_metadata: bool = False
-    ) -> Generator:
+    ) -> Collection:
         """
         Get a generator of all downstream nodes from this node.
 
@@ -155,7 +155,7 @@ class NetworkXBackend(Backend):
             return self._nx_graph.pred[u]
         return self._nx_graph.predecessors(u)
 
-    def get_node_count(self) -> Iterable:
+    def get_node_count(self) -> int:
         """
         Get an integer count of the number of nodes in this graph.
 
@@ -170,7 +170,7 @@ class NetworkXBackend(Backend):
 
     def ingest_from_edgelist_dataframe(
         self, edgelist: pd.DataFrame, source_column: str, target_column: str
-    ) -> None:
+    ) -> dict:
         """
         Ingest an edgelist from a Pandas DataFrame.
 

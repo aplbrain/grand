@@ -1,17 +1,25 @@
 from .backend import Backend
 
 try:
-    from .dynamodb import DynamoDBBackend
+    from ._dynamodb import DynamoDBBackend
 except ImportError:
     pass
-from .networkx import NetworkXBackend
+from ._networkx import NetworkXBackend
 
 try:
-    from .sqlbackend import SQLBackend
+    from ._sqlbackend import SQLBackend
 except ImportError:
     pass
 
 try:
-    from .networkit import NetworkitBackend
+    from ._networkit import NetworkitBackend
 except ImportError:
     pass
+
+__all__ = [
+    "Backend",
+    "NetworkXBackend",
+    "DynamoDBBackend",
+    "SQLBackend",
+    "NetworkitBackend",
+]
