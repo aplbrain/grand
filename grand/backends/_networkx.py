@@ -74,7 +74,7 @@ class NetworkXBackend(Backend):
             Generator: A generator of all nodes (arbitrary sort)
 
         """
-        return self._nx_graph.nodes(data=include_metadata)
+        return list(self._nx_graph.nodes(data=include_metadata))
 
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
         """

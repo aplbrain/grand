@@ -1,4 +1,4 @@
-from typing import Hashable, Collection
+from typing import Hashable, Collection, Iterable
 import abc
 
 import pandas as pd
@@ -228,10 +228,11 @@ class Backend(abc.ABC):
         return len(list(self.get_node_predecessors(u)))
 
     def in_degrees(self, nbunch=None) -> Collection:
-        return {
-            node: self.in_degree(node)
-            for node in (nbunch or self.all_nodes_as_iterable())
-        }
+        nbunch = nbunch or self.all_nodes_as_iterable()
+        if isinstance(nbunch, (list, tuple)):
+            return {node: self.in_degree(node) for node in nbunch}
+        else:
+            return self.in_degree(nbunch)
 
     def out_degree(self, u: Hashable) -> int:
         """
@@ -247,7 +248,8 @@ class Backend(abc.ABC):
         return len(list(self.get_node_successors(u)))
 
     def out_degrees(self, nbunch=None) -> Collection:
-        return {
-            node: self.out_degree(node)
-            for node in (nbunch or self.all_nodes_as_iterable())
-        }
+        nbunch = nbunch or self.all_nodes_as_iterable()
+        if isinstance(nbunch, (list, tuple)):
+            return {node: self.out_degree(node) for node in nbunch}
+        else:
+            return self.out_degree(nbunch)

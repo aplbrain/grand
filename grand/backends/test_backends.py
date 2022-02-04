@@ -291,3 +291,17 @@ class TestBackend:
         assert G.nx.degree("foo") == 2
         assert G.nx.degree("bar") == 1
         assert G.nx.degree("baz") == 1
+
+    def test_directed_degree_multiple(self, backend):
+        G = Graph(backend=backend(directed=True))
+        G.nx.add_edge("foo", "bar", baz=True)
+        G.nx.add_edge("foo", "baz", baz=True)
+        assert G.nx.degree("foo") == 2
+        assert G.nx.degree("bar") == 0
+        assert G.nx.degree("baz") == 0
+        assert G.nx.out_degree("foo") == 2
+        assert G.nx.out_degree("bar") == 0
+        assert G.nx.out_degree("baz") == 0
+        assert G.nx.in_degree("foo") == 0
+        assert G.nx.in_degree("bar") == 1
+        assert G.nx.in_degree("baz") == 1

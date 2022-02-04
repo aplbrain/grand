@@ -459,6 +459,96 @@ class SQLBackend(Backend):
             select([func.count()]).select_from(self._node_table)
         ).scalar()
 
+    def out_degrees(self, nbunch=None):
+        """
+        Return the in-degree of each node in the graph.
+
+        Arguments:
+            nbunch (Iterable): The nodes to get the in-degree of
+
+        Returns:
+            dict: A dictionary of node: in-degree pairs
+
+        """
+
+        if nbunch is None:
+            where_clause = None
+        elif isinstance(nbunch, (list, tuple)):
+            where_clause = self._edge_table.c[self._edge_source_key].in_(nbunch)
+        else:
+            # single node:
+            where_clause = self._edge_table.c[self._edge_source_key] == nbunch
+
+        if self._directed:
+            query = (
+                select([self._edge_table.c[self._edge_source_key], func.count()])
+                .select_from(self._edge_table)
+                .group_by(self._edge_table.c[self._edge_source_key])
+            )
+        else:
+            query = (
+                select([self._edge_table.c[self._edge_source_key], func.count()])
+                .select_from(self._edge_table)
+                .group_by(self._edge_table.c[self._edge_source_key])
+            )
+
+        if where_clause is not None:
+            query = query.where(where_clause)
+
+        results = {
+            r[self._edge_source_key]: r[1]
+            for r in self._connection.execute(query).fetchall()
+        }
+
+        if nbunch and not isinstance(nbunch, (list, tuple)):
+            return results.get(nbunch, 0)
+        return results
+
+    def in_degrees(self, nbunch=None):
+        """
+        Return the in-degree of each node in the graph.
+
+        Arguments:
+            nbunch (Iterable): The nodes to get the in-degree of
+
+        Returns:
+            dict: A dictionary of node: in-degree pairs
+
+        """
+
+        if nbunch is None:
+            where_clause = None
+        elif isinstance(nbunch, (list, tuple)):
+            where_clause = self._edge_table.c[self._edge_target_key].in_(nbunch)
+        else:
+            # single node:
+            where_clause = self._edge_table.c[self._edge_target_key] == nbunch
+
+        if self._directed:
+            query = (
+                select([self._edge_table.c[self._edge_target_key], func.count()])
+                .select_from(self._edge_table)
+                .group_by(self._edge_table.c[self._edge_target_key])
+            )
+        else:
+            query = (
+                select([self._edge_table.c[self._edge_target_key], func.count()])
+                .select_from(self._edge_table)
+                .group_by(self._edge_table.c[self._edge_target_key])
+            )
+
+        if where_clause is not None:
+            query = query.where(where_clause)
+
+        results = {
+            r[self._edge_target_key]: r[1]
+            for r in self._connection.execute(query).fetchall()
+        }
+
+        if nbunch and not isinstance(nbunch, (list, tuple)):
+            return results.get(nbunch, 0)
+        return results
+
     def ingest_from_edgelist_dataframe(
         self, edgelist: pd.DataFrame, source_column: str, target_column: str
     ) -> None:

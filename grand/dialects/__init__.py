@@ -167,12 +167,10 @@ class NetworkXDialect(nx.Graph):
         return _GrandAdjacencyView(self, "pred")
 
     def in_degree(self, nbunch=None):
-        if nbunch is None:
-            return self.parent.backend.in_degrees()
+        return self.parent.backend.in_degrees(nbunch)
 
     def out_degree(self, nbunch=None):
-        if nbunch is None:
-            return self.parent.backend.out_degrees()
+        return self.parent.backend.out_degrees(nbunch)
 
 
 class IGraphDialect(nx.Graph):
