@@ -106,9 +106,6 @@ class SQLBackend(Backend):
                 autoload_with=self._engine,
             )
 
-    # def __del__(self):
-    # self._connection.close()
-
     def is_directed(self) -> bool:
         """
         Return True if the backend graph is directed.
@@ -145,11 +142,47 @@ class SQLBackend(Backend):
             Hashable: The ID of this node, as inserted
 
         """
-        self._connection.execute(
-            self._node_table.insert(),
-            **{self._primary_key: node_name, "_metadata": metadata},
-        )
+        if self.has_node(node_name):
+            existing_metadata = self.get_node_by_id(node_name)
+            existing_metadata.update(metadata)
+            self._connection.execute(
+                self._node_table.update().where(
+                    self._node_table.c[self._primary_key] == node_name
+                ),
+                **{"_metadata": existing_metadata},
+            )
+        else:
+            self._connection.execute(
+                self._node_table.insert(),
+                **{self._primary_key: node_name, "_metadata": metadata},
+            )
         return node_name
+
+    def _upsert_node(self, node_name: Hashable, metadata: dict) -> Hashable:
+        """
+        Add a new node to the graph, or update an existing one.
+
+        Arguments:
+            node_name (Hashable): The ID of the node
+            metadata (dict: None): An optional dictionary of metadata
+
+        Returns:
+            Hashable: The ID of this node, as inserted
+
+        """
+        node_exists = self.has_node(node_name)
+        if node_exists:
+            self._connection.execute(
+                self._node_table.update().where(
+                    self._node_table.c[self._primary_key] == node_name
+                ),
+                **{"_metadata": metadata},
+            )
+        else:
+            self._connection.execute(
+                self._node_table.insert(),
+                **{self._primary_key: node_name, "_metadata": metadata},
+            )
 
     def all_nodes_as_iterable(self, include_metadata: bool = False) -> Generator:
         """
@@ -220,8 +253,16 @@ class SQLBackend(Backend):
                 },
             )
         except sqlalchemy.exc.IntegrityError:
-            # Edge already exists
-            pass
+            # Edge already exists, perform the update:
+            existing_metadata = self.get_edge_by_id(u, v)
+            existing_metadata.update(metadata)
+            self._connection.execute(
+                self._edge_table.update().where(
+                    self._edge_table.c[self._primary_key] == pk
+                ),
+                **{"_metadata": existing_metadata},
+            )
+
         return pk
 
     def all_edges_as_iterable(self, include_metadata: bool = False) -> Generator:
@@ -488,4 +529,3 @@ class SQLBackend(Backend):
             "edge_count": len(edgelist),
             "edge_duration": edge_toc,
         }
-

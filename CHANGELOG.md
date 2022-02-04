@@ -1,12 +1,17 @@
 # CHANGELOG
 
-## *??*
+## **0.4.0**
 
 > This version is currently unreleased.
 
 -   Improvements
     -   Backends
-        -   SQLBackend: Adds support for user-specified edge column names, with `edge_table_source_column` and `edge_table_target_column` arguments.
+        -   SQLBackend:
+            -   Add support for user-specified edge column names, with `edge_table_source_column` and `edge_table_target_column` arguments.
+            -   Fix buggy performance when updating nodes and edges.
+-   Housekeeping
+    -   Fix `pip install grand-graph[sql]` and `pip install grand-graph[dynamodb]`, which failed on previous versions due to a faulty setup.py key.
+    -   Rename all backend files.
 
 ## **0.3.0**
 
@@ -16,7 +21,7 @@
     -   Backends
         -   Add `GremlinBackend` to the list of supported backends
 -   Housekeeping
-    -   Removes sqlalchemy and boto3 from the list of requirements for the base install. You can now install these with `pip3 install grand-graph[sql]` or `[dyanmodb]`.
+    -   Remove sqlalchemy and boto3 from the list of requirements for the base install. You can now install these with `pip3 install grand-graph[sql]` or `[dyanmodb]`.
 
 ## **0.2.0**
 

@@ -54,6 +54,9 @@ class Backend(abc.ABC):
         Arguments:
             node_name (Hashable): The ID of the node
             metadata (dict: None): An optional dictionary of metadata
+            upsert (bool: True): Update the node if it already exists. If this
+                is set to False and the node already exists, a backend may
+                choose to throw an error or proceed gracefully.
 
         Returns:
             Hashable: The ID of this node, as inserted

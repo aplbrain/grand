@@ -6,14 +6,14 @@ import networkx as nx
 from . import NetworkXBackend
 
 try:
-    from .dynamodb import DynamoDBBackend
+    from ._dynamodb import DynamoDBBackend
 
     _CAN_IMPORT_DYNAMODB = True
 except ImportError:
     _CAN_IMPORT_DYNAMODB = False
 
 try:
-    from .sqlbackend import SQLBackend
+    from ._sqlbackend import SQLBackend
 
     _CAN_IMPORT_SQL = True
 except ImportError:
@@ -27,7 +27,7 @@ backend_test_params = [
         NetworkXBackend,
         marks=pytest.mark.skipif(
             os.environ.get("TEST_NETWORKXBACKEND", default="1") != "1",
-            reason="NetworkX Backend skipped because $TEST_NETWORKXBACKEND != 0.",
+            reason="NetworkX Backend skipped because $TEST_NETWORKXBACKEND != 1.",
         ),
     ),
 ]
@@ -50,33 +50,33 @@ if _CAN_IMPORT_SQL:
             marks=pytest.mark.skipif(
                 os.environ.get("TEST_SQLBACKEND", default="1") != "1"
                 or not _CAN_IMPORT_SQL,
-                reason="SQL Backend skipped because $TEST_SQLBACKEND != 0 or sqlalchemy is not installed.",
+                reason="SQL Backend skipped because $TEST_SQLBACKEND != 1 or sqlalchemy is not installed.",
             ),
         ),
     )
 
 if os.environ.get("TEST_NETWORKITBACKEND") == "1":
-    from .networkit import NetworkitBackend
+    from ._networkit import NetworkitBackend
 
     backend_test_params.append(
         pytest.param(
             NetworkitBackend,
             marks=pytest.mark.skipif(
                 os.environ.get("TEST_NETWORKITBACKEND") != "1",
-                reason="Networkit Backend skipped because $TEST_NETWORKITBACKEND != 0.",
+                reason="Networkit Backend skipped because $TEST_NETWORKITBACKEND != 1.",
             ),
         ),
     )
 
 if os.environ.get("TEST_IGRAPHBACKEND") == "1":
-    from .igraph import IGraphBackend
+    from ._igraph import IGraphBackend
 
     backend_test_params.append(
         pytest.param(
             IGraphBackend,
             marks=pytest.mark.skipif(
                 os.environ.get("TEST_IGRAPHBACKEND") != "1",
-                reason="Networkit Backend skipped because $TEST_IGRAPHBACKEND != 0.",
+                reason="Networkit Backend skipped because $TEST_IGRAPHBACKEND != 1.",
             ),
         ),
     )
@@ -86,6 +86,13 @@ if os.environ.get("TEST_IGRAPHBACKEND") == "1":
 class TestBackend:
     def test_can_create(self, backend):
         backend()
+
+    def test_can_create_directed_and_undirected_backends(self, backend):
+        b = backend(directed=True)
+        assert b.is_directed() == True
+
+        b = backend(directed=False)
+        assert b.is_directed() == False
 
     def test_can_add_node(self, backend):
         G = Graph(backend=backend())
@@ -97,6 +104,14 @@ class TestBackend:
         nxG.add_node("B", k="v")
         assert len(G.nx.nodes()) == len(nxG.nodes())
 
+    def test_can_update_node(self, backend):
+        G = Graph(backend=backend())
+        G.nx.add_node("A", k="v", z=3)
+        G.nx.add_node("A", k="v2", x=4)
+        assert G.nx.nodes["A"]["k"] == "v2"
+        assert G.nx.nodes["A"]["x"] == 4
+        assert G.nx.nodes["A"]["z"] == 3
+
     def test_can_add_edge(self, backend):
         G = Graph(backend=backend())
         nxG = nx.Graph()
@@ -106,6 +121,15 @@ class TestBackend:
         G.nx.add_edge("A", "B")
         nxG.add_edge("A", "B")
         assert len(G.nx.edges()) == len(nxG.edges())
+
+    def test_can_update_edge(self, backend):
+        G = Graph(backend=backend())
+        G.nx.add_edge("A", "B", k="v", z=3)
+        G.nx.add_edge("A", "B", k="v2", x=4)
+        assert G.nx.get_edge_data("A", "B")["k"] == "v2"
+        assert G.nx.get_edge_data("A", "B")["x"] == 4
+        assert G.nx.get_edge_data("A", "B")["z"] == 3
+        assert len(G.nx.nodes()) == 2
 
     def test_can_get_node(self, backend):
         G = Graph(backend=backend())
