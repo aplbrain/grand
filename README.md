@@ -1,8 +1,10 @@
 <div align=center><img src="docs/grand.png" width=400 /></div>
 
-<div align=center><a href="https://pypi.org/project/grand-graph/"><img src="https://img.shields.io/pypi/v/grand-graph?style=for-the-badge" /></a> <img alt="GitHub Workflow Status" src="https://img.shields.io/github/workflow/status/aplbrain/grand/Python%20package?style=for-the-badge"></div>
+<div align=center><a href="https://pypi.org/project/grand-graph/"><img src="https://img.shields.io/pypi/v/grand-graph?style=for-the-badge" /></a> <a href="https://app.codecov.io/gh/aplbrain/grand"><img alt="Codecov" src="https://img.shields.io/codecov/c/github/aplbrain/grand?style=for-the-badge"></a> <img alt="GitHub Workflow Status" src="https://img.shields.io/github/workflow/status/aplbrain/grand/Python%20package?style=for-the-badge"></div>
 
-_Grand_ lets you write your algorithms in one graph library but run them in another.
+<br />
+
+<p align=center>Graph toolkit interoperability and scalability for Python</p>
 
 ## Installation
 
