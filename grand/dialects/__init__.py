@@ -112,11 +112,6 @@ class NetworkXDialect(nx.Graph):
     def remove_edge(self, u: Hashable, v: Hashable):
         raise NotImplementedError
 
-    def edges(self, data: bool = False):
-        return [
-            i for i in self.parent.backend.all_edges_as_iterable(include_metadata=data)
-        ]
-
     def neighbors(self, u: Hashable) -> Generator:
         return self.parent.backend.get_node_neighbors(u)
 
