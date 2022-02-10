@@ -1,8 +1,16 @@
 # CHANGELOG
 
-## **0.4.0**
+## **0.4.1** (February 10, 2022)
 
-> This version is currently unreleased.
+-   Improvements
+    -   Dialects
+        -   NetworkX Dialect:
+            -   Edges are now reported as EdgeViews or other NetworkX reporting classes.
+-   Housekeeping
+    -   Removed unused tests
+    -   Removed DotMotif dialect, which is no longer a goal of this repository (and is still possible by passing a grand.Graph#nx to the DotMotif library.)
+
+## **0.4.0**
 
 -   Improvements
     -   Backends

@@ -112,11 +112,6 @@ class NetworkXDialect(nx.Graph):
     def remove_edge(self, u: Hashable, v: Hashable):
         raise NotImplementedError
 
-    def edges(self, data: bool = False):
-        return [
-            i for i in self.parent.backend.all_edges_as_iterable(include_metadata=data)
-        ]
-
     def neighbors(self, u: Hashable) -> Generator:
         return self.parent.backend.get_node_neighbors(u)
 
@@ -302,68 +297,3 @@ class NetworkitDialect:
 
     def BFSEdgesFrom(self, start: Union[int, List[int]]):
         raise NotImplementedError
-
-
-# from dotmotif import dotmotif, NetworkXExecutor
-#
-# class DotMotifDialect:
-#     def __init__(self, parent: "Graph") -> None:
-#         """
-#         Create a new DotMotifDialect to query a backend with DotMotif syntax.
-
-#         Arguments:
-#             parent (Graph): The parent Graph object
-
-#         Returns:
-#             None
-
-#         """
-#         self.parent = parent
-
-#     def find(
-#         self, motif: Union[str, dotmotif], exclude_automorphisms: bool = False
-#     ) -> pd.DataFrame:
-#         """
-#         Find a motif using DotMotif syntax.
-
-#         Arguments:
-#             motif (Union[str, dotmotif.dotmotif]): A motif in dotmotif form or
-#                 a string in the DotMotif DSL.
-#             exclude_automorphisms (bool: True): Whether to exclude motif
-#                 automorphisms from the results list
-
-#         Returns:
-#             pd.DataFrame: A DataFrame containing the results of the query
-
-#         """
-#         if isinstance(motif, str):
-#             motif = dotmotif(
-#                 ignore_direction=(not self.parent.backend._directed),
-#                 exclude_automorphisms=exclude_automorphisms,
-#             ).from_motif(motif)
-
-#         return NetworkXExecutor(graph=self.parent.nx).find(motif)
-
-#     def count(
-#         self, motif: Union[str, dotmotif], exclude_automorphisms: bool = False
-#     ) -> pd.DataFrame:
-#         """
-#         Count occurrences of a motif using DotMotif syntax.
-
-#         Arguments:
-#             motif (Union[str, dotmotif.dotmotif]): A motif in dotmotif form or
-#                 a string in the DotMotif DSL.
-#             exclude_automorphisms (bool: True): Whether to exclude motif
-#                 automorphisms from the results list
-
-#         Returns:
-#             int: A count of results of the motif query
-
-#         """
-#         if isinstance(motif, str):
-#             motif = dotmotif(
-#                 ignore_direction=(not self.parent.backend._directed),
-#                 exclude_automorphisms=exclude_automorphisms,
-#             ).from_motif(motif)
-
-#         return NetworkXExecutor(graph=self.parent.nx).count(motif)

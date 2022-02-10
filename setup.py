@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="grand-graph",
-    version="0.4.0",
+    version="0.4.1",
     author="Jordan Matelsky",
     author_email="opensource@matelsky.com",
     description="Graph database wrapper for non-graph datastores",
