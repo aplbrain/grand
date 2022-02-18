@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## **0.4.2** (Unreleased)
+
+-   Housekeeping
+    -   Added tests for metadata stores
+
 ## **0.4.1** (February 10, 2022)
 
 -   Improvements
