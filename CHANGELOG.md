@@ -2,6 +2,8 @@
 
 ## **0.4.2** (Unreleased)
 
+-   Backends
+    -   NEW: `DataFrameBackend` supports operations on a pandas-like API.
 -   Housekeeping
     -   Added tests for metadata stores
 
