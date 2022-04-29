@@ -1,7 +1,7 @@
 from typing import Hashable, Generator, Optional, Iterable
 from xml.etree.ElementInclude import include
 
-# import time
+import time
 
 import pandas as pd
 
@@ -109,7 +109,7 @@ class DataFrameBackend(Backend):
             self._node_df.set_index(self._node_df_id_column, inplace=True)
         return node_name
 
-    def all_nodes_as_iterable(self, include_metadata: bool = False) -> Generator:
+    def all_nodes_as_iterable(self, include_metadata: bool = False):
         """
         Get a generator of all of the nodes in this graph.
 
@@ -122,27 +122,24 @@ class DataFrameBackend(Backend):
 
         """
         if self._node_df is not None:
-            for node_id, row in self._node_df.iterrows():
-                if include_metadata:
-                    yield (
-                        node_id,
-                        dict(row),
-                    )
-                else:
-                    yield node_id
+            return [
+                (
+                    node_id,
+                    row.to_dict(),
+                )
+                if include_metadata
+                else node_id
+                for node_id, row in self._node_df.iterrows()
+            ]
 
         else:
-            for u in self._edge_df[self._edge_df_source_column]:
-                if include_metadata:
-                    yield (u, dict())
-                else:
-                    yield u
-
-            for u in self._edge_df[self._edge_df_target_column]:
-                if include_metadata:
-                    yield (u, dict())
-                else:
-                    yield u
+            return [
+                (node_id, {}) if include_metadata else node_id
+                for node_id in self._edge_df[self._edge_df_source_column]
+            ] + [
+                (node_id, {}) if include_metadata else node_id
+                for node_id in self._edge_df[self._edge_df_target_column]
+            ]
 
     def has_node(self, u: Hashable) -> bool:
         """
@@ -161,51 +158,85 @@ class DataFrameBackend(Backend):
             self._edge_df[self._edge_df_target_column]
         )
 
-    #     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
-    #         """
-    #         Add a new edge to the graph between two nodes.
+    def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
+        """
+        Add a new edge to the graph between two nodes.
 
-    #         If the graph is directed, this edge will start (source) at the `u` node
-    #         and end (target) at the `v` node.
+        If the graph is directed, this edge will start (source) at the `u` node
+        and end (target) at the `v` node.
 
-    #         Arguments:
-    #             u (Hashable): The source node ID
-    #             v (Hashable): The target node ID
-    #             metadata (dict): Optional metadata to associate with the edge
+        Arguments:
+            u (Hashable): The source node ID
+            v (Hashable): The target node ID
+            metadata (dict): Optional metadata to associate with the edge
 
-    #         Returns:
-    #             Hashable: The edge ID, as inserted.
+        Returns:
+            Hashable: The edge ID, as inserted.
 
-    #         """
-    #         pk = f"__{u}__{v}"
+        """
 
-    #         if not self.has_node(u):
-    #             self.add_node(u, {})
-    #         if not self.has_node(v):
-    #             self.add_node(v, {})
+        if not self.has_node(u):
+            self.add_node(u, {})
+        if not self.has_node(v):
+            self.add_node(v, {})
 
-    #         try:
-    #             self._connection.execute(
-    #                 self._edge_table.insert(),
-    #                 **{
-    #                     self._primary_key: pk,
-    #                     self._edge_source_key: u,
-    #                     self._edge_target_key: v,
-    #                     "_metadata": metadata,
-    #                 },
-    #             )
-    #         except sqlalchemy.exc.IntegrityError:
-    #             # Edge already exists, perform the update:
-    #             existing_metadata = self.get_edge_by_id(u, v)
-    #             existing_metadata.update(metadata)
-    #             self._connection.execute(
-    #                 self._edge_table.update().where(
-    #                     self._edge_table.c[self._primary_key] == pk
-    #                 ),
-    #                 **{"_metadata": existing_metadata},
-    #             )
+        if self._has_edge(u, v):
+            # Update the existing edge:
+            for k, m in metadata.items():
+                if self._directed:
+                    self._edge_df.loc[
+                        (self._edge_df[self._edge_df_source_column] == u)
+                        & (self._edge_df[self._edge_df_target_column] == v),
+                        k,
+                    ] = m
+                else:
+                    # Check for the edge in both directions:
+                    self._edge_df.loc[
+                        (self._edge_df[self._edge_df_source_column] == u)
+                        & (self._edge_df[self._edge_df_target_column] == v),
+                        k,
+                    ] = m
+                    self._edge_df.loc[
+                        (self._edge_df[self._edge_df_source_column] == v)
+                        & (self._edge_df[self._edge_df_target_column] == u),
+                        k,
+                    ] = m
+        else:
+            # Add a new row to the edges table:
+            self._edge_df = self._edge_df.append(
+                {
+                    self._edge_df_source_column: u,
+                    self._edge_df_target_column: v,
+                    **metadata,
+                },
+                ignore_index=True,
+            )
+        return (u, v)
 
-    #         return pk
+    def _has_edge(self, u: Hashable, v: Hashable) -> bool:
+        """
+        Return true if the edge exists in the graph.
+
+        Arguments:
+            u (Hashable): The source node ID
+            v (Hashable): The target node ID
+
+        Returns:
+            bool: True if the edge exists
+        """
+        if self._directed:
+            return (
+                (self._edge_df[self._edge_df_source_column] == u)
+                & (self._edge_df[self._edge_df_target_column] == v)
+            ).any()
+        else:
+            return (
+                (self._edge_df[self._edge_df_source_column] == u)
+                & (self._edge_df[self._edge_df_target_column] == v)
+            ).any() or (
+                (self._edge_df[self._edge_df_source_column] == v)
+                & (self._edge_df[self._edge_df_target_column] == u)
+            ).any()
 
     def all_edges_as_iterable(self, include_metadata: bool = False) -> Generator:
         """
@@ -266,7 +297,7 @@ class DataFrameBackend(Backend):
                     & (self._edge_df[self._edge_df_target_column] == v)
                 ]
                 .iloc[0]
-                ._metadata
+                .to_dict()
             )
 
         else:
@@ -274,18 +305,16 @@ class DataFrameBackend(Backend):
                 (self._edge_df[self._edge_df_source_column] == u)
                 & (self._edge_df[self._edge_df_target_column] == v)
             ]
-            if left:
-                return left.iloc[0]._metadata
+            if len(left):
+                return self._edge_as_dict(left.iloc[0])
             right = self._edge_df[
                 (self._edge_df[self._edge_df_source_column] == v)
                 & (self._edge_df[self._edge_df_target_column] == u)
             ]
-            if right:
-                return right.iloc[0]._metadata
+            if len(right):
+                return self._edge_as_dict(right.iloc[0])
 
-    def get_node_neighbors(
-        self, u: Hashable, include_metadata: bool = False
-    ) -> Generator:
+    def get_node_neighbors(self, u: Hashable, include_metadata: bool = False):
         """
         Get a generator of all downstream nodes from this node.
 
@@ -296,23 +325,67 @@ class DataFrameBackend(Backend):
             Generator
 
         """
-        if self._directed:
-            raise NotImplementedError("Directed graphs not implemented")
 
-        for _, row in self._edge_df[
-            (self._edge_df[self._edge_df_source_column] == u)
-        ].iterrows():
-            if include_metadata:
-                yield (
-                    row[self._edge_df_target_column],
-                    dict(row),
-                )
+        if include_metadata:
+            if self._directed:
+                return {
+                    (r[self._edge_df_target_column]): self._edge_as_dict(r)
+                    for _, r in self._edge_df[
+                        (self._edge_df[self._edge_df_source_column] == u)
+                    ].iterrows()
+                }
             else:
-                yield row[self._edge_df_target_column]
+                return {
+                    (
+                        r[self._edge_df_source_column]
+                        if r[self._edge_df_source_column] != u
+                        else r[self._edge_df_target_column]
+                    ): self._edge_as_dict(r)
+                    for _, r in self._edge_df[
+                        (self._edge_df[self._edge_df_source_column] == u)
+                        | (self._edge_df[self._edge_df_target_column] == u)
+                    ].iterrows()
+                }
 
-    def get_node_predecessors(
-        self, u: Hashable, include_metadata: bool = False
-    ) -> Generator:
+        if self._directed:
+            return iter(
+                [
+                    row[self._edge_df_target_column]
+                    for _, row in self._edge_df[
+                        (self._edge_df[self._edge_df_source_column] == u)
+                    ].iterrows()
+                ]
+            )
+        else:
+            return iter(
+                [
+                    row[self._edge_df_source_column]
+                        if row[self._edge_df_source_column] != u
+                        else row[self._edge_df_target_column]
+                    for _, row in self._edge_df[
+                        (self._edge_df[self._edge_df_source_column] == u)
+                        | (self._edge_df[self._edge_df_target_column] == u)
+                    ].iterrows()
+                ]
+            )
+
+    def _edge_as_dict(self, row):
+        """
+        Convert an edge row to a dictionary.
+
+        Arguments:
+            row (pandas.Series): The edge row
+
+        Returns:
+            dict: The edge metadata
+
+        """
+        r = row.to_dict()
+        r.pop(self._edge_df_source_column)
+        r.pop(self._edge_df_target_column)
+        return r
+
+    def get_node_predecessors(self, u: Hashable, include_metadata: bool = False):
         """
         Get a generator of all upstream nodes from this node.
 
@@ -323,70 +396,53 @@ class DataFrameBackend(Backend):
             Generator
 
         """
-        if not self._directed:
-            raise NotImplementedError("Undirected graphs not implemented")
 
-        for _, row in self._edge_df[
-            (self._edge_df[self._edge_df_target_column] == u)
-        ].iterrows():
-            if include_metadata:
-                yield (
-                    row[self._edge_df_source_column],
-                    dict(row),
-                )
+        if include_metadata:
+            if self._directed:
+                return {
+                    (
+                        r[self._edge_df_target_column]
+                        if r[self._edge_df_target_column] != u
+                        else r[self._edge_df_source_column]
+                    ): self._edge_as_dict(r)
+                    for _, r in self._edge_df[
+                        (self._edge_df[self._edge_df_target_column] == u)
+                    ].iterrows()
+                }
             else:
-                yield row[self._edge_df_source_column]
+                return {
+                    (
+                        r[self._edge_df_target_column]
+                        if r[self._edge_df_target_column] != u
+                        else r[self._edge_df_source_column]
+                    ): self._edge_as_dict(r)
+                    for _, r in self._edge_df[
+                        (self._edge_df[self._edge_df_target_column] == u)
+                        | (self._edge_df[self._edge_df_source_column] == u)
+                    ].iterrows()
+                }
 
-        # if include_metadata:
-        #     raise NotImplementedError("Undirected graphs not implemented")
-        #     return {
-        #         (
-        #             r[self._edge_source_key]
-        #             if r[self._edge_source_key] != u
-        #             else r[self._edge_target_key]
-        #         ): r["_metadata"]
-        #         for r in res
-        #     }
-        # for _, row in self._edge_df[
-        #     (self._edge_df[self._edge_df_target_column] == u)
-        # ].iterrows():
-
-        # if self._directed:
-        #     res = self._connection.execute(
-        #         self._edge_table.select().where(
-        #             self._edge_table.c[self._edge_target_key] == u
-        #         )
-        #     ).fetchall()
-        # else:
-        #     res = self._connection.execute(
-        #         self._edge_table.select().where(
-        #             or_(
-        #                 (self._edge_table.c[self._edge_target_key] == u),
-        #                 (self._edge_table.c[self._edge_source_key] == u),
-        #             )
-        #         )
-        #     ).fetchall()
-
-        # if include_metadata:
-        #     return {
-        #         (
-        #             r[self._edge_source_key]
-        #             if r[self._edge_source_key] != u
-        #             else r[self._edge_target_key]
-        #         ): r["_metadata"]
-        #         for r in res
-        #     }
-
-        # return iter(
-        #     [
-        #         (
-        #             r[self._edge_source_key]
-        #             if r[self._edge_source_key] != u
-        #             else r[self._edge_target_key]
-        #         )
-        #         for r in res
-        #     ]
-        # )
+        if self._directed:
+            return iter(
+                [
+                    row[self._edge_df_source_column]
+                    for _, row in self._edge_df[
+                        (self._edge_df[self._edge_df_target_column] == u)
+                    ].iterrows()
+                ]
+            )
+        else:
+            return iter(
+                [
+                    row[self._edge_df_source_column]
+                    if row[self._edge_df_target_column] != u
+                    else row[self._edge_df_target_column]
+                    for _, row in self._edge_df[
+                        (self._edge_df[self._edge_df_target_column] == u)
+                        | (self._edge_df[self._edge_df_source_column] == u)
+                    ].iterrows()
+                ]
+            )
 
     def get_node_count(self) -> int:
         """
@@ -408,164 +464,20 @@ class DataFrameBackend(Backend):
             )
         )
 
+    def ingest_from_edgelist_dataframe(
+        self, edgelist: pd.DataFrame, source_column: str, target_column: str
+    ) -> dict:
+        """
+        Ingest an edgelist from a Pandas DataFrame.
 
-#     def out_degrees(self, nbunch=None):
-#         """
-#         Return the in-degree of each node in the graph.
+        """
+        # Produce edge list:
 
-#         Arguments:
-#             nbunch (Iterable): The nodes to get the in-degree of
+        edge_tic = time.time()
+        self._edge_df = edgelist
+        self._edge_df_source_column = source_column
+        self._edge_df_target_column = target_column
 
-#         Returns:
-#             dict: A dictionary of node: in-degree pairs
-
-#         """
-
-#         if nbunch is None:
-#             where_clause = None
-#         elif isinstance(nbunch, (list, tuple)):
-#             where_clause = self._edge_table.c[self._edge_source_key].in_(nbunch)
-#         else:
-#             # single node:
-#             where_clause = self._edge_table.c[self._edge_source_key] == nbunch
-
-#         if self._directed:
-#             query = (
-#                 select([self._edge_table.c[self._edge_source_key], func.count()])
-#                 .select_from(self._edge_table)
-#                 .group_by(self._edge_table.c[self._edge_source_key])
-#             )
-#         else:
-#             query = (
-#                 select([self._edge_table.c[self._edge_source_key], func.count()])
-#                 .select_from(self._edge_table)
-#                 .group_by(self._edge_table.c[self._edge_source_key])
-#             )
-
-#         if where_clause is not None:
-#             query = query.where(where_clause)
-
-#         results = {
-#             r[self._edge_source_key]: r[1]
-#             for r in self._connection.execute(query).fetchall()
-#         }
-
-#         if nbunch and not isinstance(nbunch, (list, tuple)):
-#             return results.get(nbunch, 0)
-#         return results
-
-#     def in_degrees(self, nbunch=None):
-#         """
-#         Return the in-degree of each node in the graph.
-
-#         Arguments:
-#             nbunch (Iterable): The nodes to get the in-degree of
-
-#         Returns:
-#             dict: A dictionary of node: in-degree pairs
-
-#         """
-
-#         if nbunch is None:
-#             where_clause = None
-#         elif isinstance(nbunch, (list, tuple)):
-#             where_clause = self._edge_table.c[self._edge_target_key].in_(nbunch)
-#         else:
-#             # single node:
-#             where_clause = self._edge_table.c[self._edge_target_key] == nbunch
-
-#         if self._directed:
-#             query = (
-#                 select([self._edge_table.c[self._edge_target_key], func.count()])
-#                 .select_from(self._edge_table)
-#                 .group_by(self._edge_table.c[self._edge_target_key])
-#             )
-#         else:
-#             query = (
-#                 select([self._edge_table.c[self._edge_target_key], func.count()])
-#                 .select_from(self._edge_table)
-#                 .group_by(self._edge_table.c[self._edge_target_key])
-#             )
-
-#         if where_clause is not None:
-#             query = query.where(where_clause)
-
-#         results = {
-#             r[self._edge_target_key]: r[1]
-#             for r in self._connection.execute(query).fetchall()
-#         }
-
-#         if nbunch and not isinstance(nbunch, (list, tuple)):
-#             return results.get(nbunch, 0)
-#         return results
-
-#     def ingest_from_edgelist_dataframe(
-#         self, edgelist: pd.DataFrame, source_column: str, target_column: str
-#     ) -> None:
-#         """
-#         Ingest an edgelist from a Pandas DataFrame.
-
-#         """
-#         # Produce edge list:
-
-#         edge_tic = time.time()
-#         newlist = edgelist.rename(
-#             columns={
-#                 source_column: self._edge_source_key,
-#                 target_column: self._edge_target_key,
-#             }
-#         )
-
-#         newlist[self._primary_key] = edgelist.apply(
-#             lambda x: f"__{x[source_column]}__{x[target_column]}", axis="columns"
-#         )
-#         newlist["_metadata"] = edgelist.apply(
-#             lambda x: {
-#                 k: v for k, v in x.items() if k not in [source_column, target_column]
-#             },
-#             axis="columns",
-#         )
-
-#         newlist[
-#             [
-#                 self._edge_source_key,
-#                 self._edge_target_key,
-#                 self._primary_key,
-#                 "_metadata",
-#             ]
-#         ].to_sql(
-#             self._edge_table_name,
-#             self._engine,
-#             index=False,
-#             if_exists="append",
-#             dtype={"_metadata": sqlalchemy.JSON},
-#         )
-
-#         edge_toc = time.time() - edge_tic
-
-#         # now ingest nodes:
-#         node_tic = time.time()
-#         nodes = edgelist[source_column].append(edgelist[target_column]).unique()
-#         pd.DataFrame(
-#             [
-#                 {
-#                     self._primary_key: node,
-#                     # no metadata:
-#                     "_metadata": {},
-#                 }
-#                 for node in nodes
-#             ]
-#         ).to_sql(
-#             self._node_table_name,
-#             self._engine,
-#             index=False,
-#             if_exists="replace",
-#             dtype={"_metadata": sqlalchemy.JSON},
-#         )
-
-#         return {
-#             "node_count": len(nodes),
-#             "node_duration": time.time() - node_tic,
-#             "edge_count": len(edgelist),
-#             "edge_duration": edge_toc,
-#         }
+        return {
+            "edge_duration": time.time() - edge_tic,
+        }
