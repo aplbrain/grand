@@ -3,7 +3,7 @@ import os
 
 import networkx as nx
 
-from . import NetworkXBackend
+from . import NetworkXBackend, DataFrameBackend
 
 try:
     from ._dynamodb import DynamoDBBackend
@@ -28,6 +28,15 @@ backend_test_params = [
         marks=pytest.mark.skipif(
             os.environ.get("TEST_NETWORKXBACKEND", default="1") != "1",
             reason="NetworkX Backend skipped because $TEST_NETWORKXBACKEND != 1.",
+        ),
+    ),
+]
+backend_test_params = [
+    pytest.param(
+        DataFrameBackend,
+        marks=pytest.mark.skipif(
+            os.environ.get("TEST_DATAFRAMEBACKEND", default="1") != "1",
+            reason="DataFrameBackend skipped because $TEST_DATAFRAMEBACKEND != 1.",
         ),
     ),
 ]

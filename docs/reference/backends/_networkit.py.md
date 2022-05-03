@@ -1,19 +1,27 @@
-## *Class* `Backend(abc.ABC)`
+## *Class* `NetworkitBackend(Backend)`
 
 
-Abstract base class for the management of persisted graph structure.
+Networkit doesn't support metadata or named nodes, so all node names and metadata must currently be stored in a parallel data structure.
 
-Do not use this class directly.
+To solve this problem, a NodeNameManager and MetadataStore, from `grand.backends.metadatastore.NodeNameManager` and `grand.backends.metadatastore.MetadataStore` respectively, are included at the top level of this class. In order to preserve this metadata structure statefully, you must serialize both the graph as well as the data stores.
+
+This is currently UNOPTIMIZED CODE.
+
+Recommendations for future work include improved indexing and caching of node names and metadata.
+
+> - **documentation** (`None`: `None`): https://networkit.github.io/dev-docs/python_api/graph.html
 
 
 
-## *Function* `__init__(self, directed: bool = False)`
+## *Function* `__init__(self, directed: bool = False, metadata_store: MetadataStore = None)`
 
 
-Create a new Backend instance.
+Create a new NetworkitBackend instance, using a Networkit.graph.Graph object to store and manage network structure.
 
 ### Arguments
 > - **directed** (`bool`: `False`): Whether to make the backend graph directed
+> - **metadata_store** (`MetadataStore`: `None`): Optionally, a MetadataStore to use
+        to handle node and edge attributes. If not provided, defaults         to a DictMetadataStore.
 
 ### Returns
     None
@@ -41,8 +49,6 @@ Add a new node to the graph.
 ### Arguments
 > - **node_name** (`Hashable`: `None`): The ID of the node
 > - **metadata** (`dict`: `None`): An optional dictionary of metadata
-> - **upsert** (`bool`: `True`): Update the node if it already exists. If this
-        is set to False and the node already exists, a backend may         choose to throw an error or proceed gracefully.
 
 ### Returns
 > - **Hashable** (`None`: `None`): The ID of this node, as inserted
@@ -62,7 +68,7 @@ Return the data associated with a node.
 
 
 
-## *Function* `all_nodes_as_iterable(self, include_metadata: bool = False) -> Collection`
+## *Function* `all_nodes_as_iterable(self, include_metadata: bool = False) -> Generator`
 
 
 Get a generator of all of the nodes in this graph.
@@ -105,7 +111,7 @@ If the graph is directed, this edge will start (source) at the `u` node and end 
 
 
 
-## *Function* `all_edges_as_iterable(self, include_metadata: bool = False) -> Collection`
+## *Function* `all_edges_as_iterable(self, include_metadata: bool = False) -> Generator`
 
 
 Get a list of all edges in this graph, arbitrary sort.
@@ -132,7 +138,7 @@ Get an edge by its source and target IDs.
 
 
 
-## *Function* `get_node_count(self) -> int`
+## *Function* `get_node_count(self) -> Iterable`
 
 
 Get an integer count of the number of nodes in this graph.
@@ -142,66 +148,4 @@ Get an integer count of the number of nodes in this graph.
 
 ### Returns
 > - **int** (`None`: `None`): The count of nodes
-
-
-
-## *Function* `degree(self, u: Hashable) -> int`
-
-
-Get the degree of a node.
-
-### Arguments
-> - **u** (`Hashable`: `None`): The node ID
-
-### Returns
-> - **int** (`None`: `None`): The degree of the node
-
-
-
-## *Function* `in_degree(self, u: Hashable) -> int`
-
-
-Get the in-degree of a node.
-
-### Arguments
-> - **u** (`Hashable`: `None`): The node ID
-
-### Returns
-> - **int** (`None`: `None`): The in-degree of the node
-
-
-
-## *Function* `out_degree(self, u: Hashable) -> int`
-
-
-Get the out-degree of a node.
-
-### Arguments
-> - **u** (`Hashable`: `None`): The node ID
-
-### Returns
-> - **int** (`None`: `None`): The out-degree of the node
-
-
-
-## *Class* `CachedBackend(Backend)`
-
-
-A proxy Backend that serves as a cache for any other grand.Backend.
-
-
-
-## *Class* `InMemoryCachedBackend(CachedBackend)`
-
-
-A proxy Backend that serves as a cache for any other grand.Backend.
-
-Wraps each call to the Backend with an LRU cache.
-
-
-
-## *Function* `clear_cache(self)`
-
-
-Clear the cache.
 

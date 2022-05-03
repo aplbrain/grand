@@ -5,6 +5,7 @@ try:
 except ImportError:
     pass
 from ._networkx import NetworkXBackend
+from ._dataframe import DataFrameBackend
 
 try:
     from ._sqlbackend import SQLBackend
@@ -21,6 +22,7 @@ __all__ = [
     "CachedBackend",
     "InMemoryCachedBackend",
     "NetworkXBackend",
+    "DataFrameBackend",
     "DynamoDBBackend",
     "SQLBackend",
     "NetworkitBackend",
