@@ -1,19 +1,9 @@
-from typing import Hashable, Generator, Optional, Iterable
-from xml.etree.ElementInclude import include
-
+from typing import Hashable, Generator
 import time
 
 import pandas as pd
 
-# import sqlalchemy
-# from sqlalchemy.pool import NullPool
-# from sqlalchemy.sql import select
-# from sqlalchemy import and_, or_, func
-
 from .backend import Backend
-
-# _DEFAULT_SQL_URL = "sqlite:///"
-# _DEFAULT_SQL_STR_LEN = 64
 
 
 class DataFrameBackend(Backend):
@@ -87,26 +77,32 @@ class DataFrameBackend(Backend):
         """
 
         # Add a new row to the nodes table:
-        if self._node_df is not None:
+        if self._node_df is None:
+            self._node_df = pd.DataFrame(
+                [
+                    {
+                        self._node_df_id_column: node_name,
+                        **metadata,
+                    }
+                ],
+                columns=[
+                    self._node_df_id_column,
+                    *metadata.keys(),
+                ],
+            )
+            self._node_df.set_index(self._node_df_id_column, inplace=True)
+        else:
             if self.has_node(node_name):
                 existing_metadata = self.get_node_by_id(node_name)
                 existing_metadata.update(metadata)
                 for k, v in existing_metadata.items():
-                    self._node_df.loc[node_name, k] = v
+                    self._node_df.at[node_name, k] = v
             else:
-                for k, v in metadata.items():
-                    self._node_df.loc[node_name, k] = v
-        else:
-            self._node_df = pd.DataFrame(
-                columns=[
-                    self._node_df_id_column,
-                    *metadata.keys(),
-                ]
-            )
-            self._node_df.loc[0, self._node_df_id_column] = node_name
-            for k, v in metadata.items():
-                self._node_df.loc[0, k] = v
-            self._node_df.set_index(self._node_df_id_column, inplace=True)
+                # Insert a new row:
+                self._node_df = pd.concat(
+                    [self._node_df, pd.DataFrame([{node_name: metadata}]).T]
+                )
+
         return node_name
 
     def all_nodes_as_iterable(self, include_metadata: bool = False):
@@ -202,15 +198,14 @@ class DataFrameBackend(Backend):
                         k,
                     ] = m
         else:
-            # Add a new row to the edges table:
-            self._edge_df = self._edge_df.append(
-                {
-                    self._edge_df_source_column: u,
-                    self._edge_df_target_column: v,
-                    **metadata,
-                },
-                ignore_index=True,
-            )
+            row = {
+                self._edge_df_source_column: u,
+                self._edge_df_target_column: v,
+                **metadata,
+            }
+            self._edge_df.loc[len(self._edge_df)] = None
+            for k, m in row.items():
+                self._edge_df.loc[len(self._edge_df) - 1, k] = m
         return (u, v)
 
     def _has_edge(self, u: Hashable, v: Hashable) -> bool:
@@ -274,7 +269,8 @@ class DataFrameBackend(Backend):
 
         """
         if self._node_df is not None:
-            return dict(self._node_df.loc[node_name])
+            res = (self._node_df.loc[node_name]).to_dict()
+            return res.get(0, res)
 
         return {}
 
@@ -360,8 +356,8 @@ class DataFrameBackend(Backend):
             return iter(
                 [
                     row[self._edge_df_source_column]
-                        if row[self._edge_df_source_column] != u
-                        else row[self._edge_df_target_column]
+                    if row[self._edge_df_source_column] != u
+                    else row[self._edge_df_target_column]
                     for _, row in self._edge_df[
                         (self._edge_df[self._edge_df_source_column] == u)
                         | (self._edge_df[self._edge_df_target_column] == u)
