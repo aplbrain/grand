@@ -18,6 +18,8 @@ setuptools.setup(
     extras_require={
         "sql": ["SQLAlchemy>=1.3"],
         "dynamodb": ["boto3"],
+        "igraph": ["igraph"],
+        "networkit": ["cmake", "cython", "networkit"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",

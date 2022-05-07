@@ -70,8 +70,12 @@ class IGraphBackend(Backend):
             Hashable: The ID of this node, as inserted
 
         """
-        # TODO: overwrite existing
-        self._ig.add_vertex(node_name, **metadata)
+        if self.has_node(node_name):
+            # Update metadata
+            m = self._ig.vs.find(name=node_name)
+            m.update_attributes(metadata)
+            return node_name
+        self._ig.add_vertex(name=node_name, **metadata)
         return node_name
 
     def get_node_by_id(self, node_name: Hashable):
@@ -141,7 +145,9 @@ class IGraphBackend(Backend):
 
         """
         if self.has_edge(u, v):
-            # TODO: update metadata
+            # Update metadata
+            e = self._ig.get_eid(u, v)
+            self._ig.es[e].update_attributes(metadata)
             return
         if not self.has_node(u):
             self.add_node(u, {})

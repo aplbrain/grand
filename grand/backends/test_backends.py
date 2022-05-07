@@ -13,6 +13,13 @@ except ImportError:
     _CAN_IMPORT_DYNAMODB = False
 
 try:
+    from ._igraph import IGraphBackend
+
+    _CAN_IMPORT_IGRAPH = True
+except ImportError:
+    _CAN_IMPORT_IGRAPH = False
+
+try:
     from ._sqlbackend import SQLBackend
 
     _CAN_IMPORT_SQL = True
@@ -60,6 +67,17 @@ if _CAN_IMPORT_SQL:
                 os.environ.get("TEST_SQLBACKEND", default="1") != "1"
                 or not _CAN_IMPORT_SQL,
                 reason="SQL Backend skipped because $TEST_SQLBACKEND != 1 or sqlalchemy is not installed.",
+            ),
+        ),
+    )
+if _CAN_IMPORT_IGRAPH:
+    backend_test_params.append(
+        pytest.param(
+            IGraphBackend,
+            marks=pytest.mark.skipif(
+                os.environ.get("TEST_IGRAPBACKEND", default="1") != "1"
+                or not _CAN_IMPORT_SQL,
+                reason="IGraph Backend skipped because $TEST_IGRAPBACKEND != 1 or igraph is not installed.",
             ),
         ),
     )
