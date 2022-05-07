@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## **0.4.2** (Unreleased)
+## **0.4.2** (May 7, 2022)
 
 -   Backends
     -   NEW: `DataFrameBackend` supports operations on a pandas-like API.
