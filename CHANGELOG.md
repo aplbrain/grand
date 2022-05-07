@@ -6,6 +6,7 @@
     -   NEW: `DataFrameBackend` supports operations on a pandas-like API.
 -   Housekeeping
     -   Added tests for metadata stores
+    -   Added IGraph and Networkit backends to the standard GitHub Actions CI test suite
 
 ## **0.4.1** (February 10, 2022)
 
