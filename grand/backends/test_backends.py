@@ -20,6 +20,13 @@ except ImportError:
     _CAN_IMPORT_IGRAPH = False
 
 try:
+    from ._networkit import NetworkitBackend
+
+    _CAN_IMPORT_NETWORKIT = True
+except ImportError:
+    _CAN_IMPORT_NETWORKIT = False
+
+try:
     from ._sqlbackend import SQLBackend
 
     _CAN_IMPORT_SQL = True
@@ -64,8 +71,7 @@ if _CAN_IMPORT_SQL:
         pytest.param(
             SQLBackend,
             marks=pytest.mark.skipif(
-                os.environ.get("TEST_SQLBACKEND", default="1") != "1"
-                or not _CAN_IMPORT_SQL,
+                os.environ.get("TEST_SQLBACKEND", default="1") != "1",
                 reason="SQL Backend skipped because $TEST_SQLBACKEND != 1 or sqlalchemy is not installed.",
             ),
         ),
@@ -75,9 +81,18 @@ if _CAN_IMPORT_IGRAPH:
         pytest.param(
             IGraphBackend,
             marks=pytest.mark.skipif(
-                os.environ.get("TEST_IGRAPBACKEND", default="1") != "1"
-                or not _CAN_IMPORT_SQL,
-                reason="IGraph Backend skipped because $TEST_IGRAPBACKEND != 1 or igraph is not installed.",
+                os.environ.get("TEST_IGRAPHBACKEND", default="1") != "1",
+                reason="IGraph Backend skipped because $TEST_IGRAPHBACKEND != 1 or igraph is not installed.",
+            ),
+        ),
+    )
+if _CAN_IMPORT_NETWORKIT:
+    backend_test_params.append(
+        pytest.param(
+            NetworkitBackend,
+            marks=pytest.mark.skipif(
+                os.environ.get("TEST_NETWORKIT", default="1") != "1",
+                reason="Networkit Backend skipped because $TEST_NETWORKIT != 1 or networkit is not installed.",
             ),
         ),
     )

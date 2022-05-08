@@ -23,12 +23,20 @@ class DictMetadataStore(MetadataStore):
     def add_node(self, node_name: Hashable, metadata: dict) -> Hashable:
         if metadata is None:
             metadata = {}
-        self.ndata[node_name] = metadata
+        # Add or update metadata
+        if node_name in self.ndata:
+            self.ndata[node_name].update(metadata)
+        else:
+            self.ndata[node_name] = metadata
 
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict) -> Hashable:
         if metadata is None:
             metadata = {}
-        self.edata[(u, v)] = metadata
+        # Add or update metadata
+        if (u, v) in self.edata:
+            self.edata[(u, v)].update(metadata)
+        else:
+            self.edata[(u, v)] = metadata
 
     def get_node(self, node_name: Hashable) -> dict:
         return self.ndata[node_name]

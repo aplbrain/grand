@@ -19,6 +19,16 @@ def test_can_add_edge():
     assert store.get_edge("a", "b") == {"b": 2}
 
 
+def test_can_update_edge():
+    store = DictMetadataStore()
+    store.add_edge("a", "b", {"b": 2})
+    store.add_edge("a", "b", {"x": "x"})
+    store.add_edge("a", "b", {"z": "z"})
+    assert store.get_edge("a", "b")["b"] == 2
+    assert store.get_edge("a", "b")["x"] == "x"
+    assert store.get_edge("a", "b")["z"] == "z"
+
+
 def test_cannot_get_invalid_node():
     store = DictMetadataStore()
     with pytest.raises(KeyError):
