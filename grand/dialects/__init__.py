@@ -167,6 +167,9 @@ class NetworkXDialect(nx.Graph):
     def out_degree(self, nbunch=None):
         return self.parent.backend.out_degrees(nbunch)
 
+    def is_directed(self):
+        return self.parent.backend.is_directed()
+
 
 class IGraphDialect(nx.Graph):
     """
