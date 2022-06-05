@@ -5,7 +5,7 @@ Grand graphs package.
 
 from typing import Optional
 from .backends import Backend, NetworkXBackend
-from .dialects import NetworkXDialect, IGraphDialect
+from .dialects import NetworkXDialect, IGraphDialect, NetworkitDialect
 
 
 _DEFAULT_BACKEND = NetworkXBackend
@@ -40,8 +40,20 @@ class Graph:
             self.backend = self.backend(**backend_kwargs)
 
         # Attach dialects:
-        self.nx = NetworkXDialect(self)
-        self.igraph = IGraphDialect(self)
+        self.attach_dialect("nx", NetworkXDialect)
+        self.attach_dialect("igraph", IGraphDialect)
+        self.attach_dialect("networkit", NetworkitDialect)
+
+    def attach_dialect(self, name: str, dialect: type):
+        """
+        Attach a dialect to the graph.
+
+        Arguments:
+            name (str): The name of the dialect.
+            dialect (type): The dialect class to attach.
+
+        """
+        setattr(self, name, dialect(self))
 
 
 class DiGraph(Graph):

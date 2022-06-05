@@ -102,7 +102,10 @@ class Backend(abc.ABC):
         Returns:
             bool: True if the node exists
         """
-        ...
+        try:
+            return self.get_node_by_id(u) is not None
+        except KeyError:
+            return False
 
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
         """
@@ -208,7 +211,7 @@ class Backend(abc.ABC):
             int: The degree of the node
 
         """
-        return len(self.get_node_neighbors(u))
+        return len([i for i in self.get_node_neighbors(u)])
 
     def degrees(self, nbunch=None) -> Collection:
         return {

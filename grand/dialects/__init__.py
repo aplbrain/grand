@@ -36,7 +36,7 @@ class _GrandAdjacencyView(AdjacencyView):
             }
 
     def __len__(self):
-        return len(self._parent.backend.get_node_count())
+        return self._parent.backend.get_node_count()
 
     def __iter__(self):
         return iter(self._parent.backend.all_nodes_as_iterable(include_metadata=False))
@@ -193,7 +193,7 @@ class IGraphDialect(nx.Graph):
     def add_vertices(self, num_verts: int):
         old_max = len(self.vs)
         for new_v_index in range(num_verts):
-            return self.parent.backend.add_node(new_v_index + old_max, {})
+            self.parent.backend.add_node(new_v_index + old_max, {})
 
     @property
     def vs(self):
@@ -209,7 +209,7 @@ class IGraphDialect(nx.Graph):
 
     def add_edges(self, edgelist: List[Tuple[Hashable, Hashable]]):
         for (u, v) in edgelist:
-            return self.parent.backend.add_edge(u, v, {})
+            self.parent.backend.add_edge(u, v, {})
 
     def get_edgelist(self):
         return self.parent.backend.all_edges_as_iterable(include_metadata=False)
@@ -229,7 +229,7 @@ class NetworkitDialect:
 
     def addNode(self):
         new_id = self.parent.backend.get_node_count()
-        self.parent.backend.add_node(new_id)
+        self.parent.backend.add_node(new_id, {})
         return new_id
 
     def addEdge(self, u: Hashable, v: Hashable) -> None:
