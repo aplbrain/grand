@@ -22,6 +22,13 @@ class TestNetworkXDialect(unittest.TestCase):
         H.add_edge("1", "3")
         self.assertEqual(G.nx.pred, H.pred)
 
+    def test_nx_directed(self):
+        G = Graph(directed=True)
+        self.assertTrue(G.nx.is_directed())
+
+        G = Graph(directed=False)
+        self.assertFalse(G.nx.is_directed())
+
     def test_in_degree(self):
         G = Graph(directed=True)
         G.nx.add_edge("1", "2")

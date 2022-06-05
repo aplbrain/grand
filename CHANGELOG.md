@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## **0.5.0** (Unreleased)
+
+-   Housekeeping
+    -   Removed extra arguments to Graph constructor and improved Graph kwargs handing
+    -   Added `grand.DiGraph` convenience wrapper for directed graphs
+
 ## **0.4.2** (May 7, 2022)
 
 -   Backends
