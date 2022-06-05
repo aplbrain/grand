@@ -5,6 +5,8 @@
 -   Housekeeping
     -   Removed extra arguments to Graph constructor and improved Graph kwargs handing
     -   Added `grand.DiGraph` convenience wrapper for directed graphs
+-   Dialects
+    -   Expanded Networkit dialect test coverage
 
 ## **0.4.2** (May 7, 2022)
 
