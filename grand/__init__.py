@@ -19,6 +19,10 @@ class Graph:
 
     """
 
+    nx: NetworkXDialect
+    networkit: NetworkitDialect
+    igraph: IGraphDialect
+
     def __init__(self, backend: Optional[Backend] = None, **backend_kwargs: dict):
         """
         Create a new grand.Graph.
