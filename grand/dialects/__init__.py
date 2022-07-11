@@ -161,6 +161,10 @@ class NetworkXDialect(nx.Graph):
         """
         return _GrandAdjacencyView(self, "pred")
 
+    @property
+    def graph(self):
+        return {}
+
     def in_degree(self, nbunch=None):
         return self.parent.backend.in_degrees(nbunch)
 
