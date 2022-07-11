@@ -1,3 +1,4 @@
+import io
 import unittest
 
 from .. import Graph
@@ -88,6 +89,11 @@ class TestNetworkXDialect(unittest.TestCase):
         self.assertEqual(dict(G.edges), dict(H.edges))
         self.assertEqual(dict(G.edges()), dict(H.edges()))
         self.assertEqual(list(G.edges["1", "2"]), list(H.edges["1", "2"]))
+
+    def test_nx_export(self):
+        gg = Graph()
+        f = io.BytesIO()
+        nx.write_graphml(gg.nx, f)
 
 
 class TestNetworkitDialect(unittest.TestCase):
