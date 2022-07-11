@@ -7,6 +7,7 @@
     -   Added `grand.DiGraph` convenience wrapper for directed graphs
 -   Dialects
     -   Expanded Networkit dialect test coverage
+    -   Added support for exporting NetworkX graphs by adding `graph` attribute
 
 ## **0.4.2** (May 7, 2022)
 
