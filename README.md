@@ -1,6 +1,8 @@
 <div align=center><img src="docs/grand.png" width=400 /></div>
 
-<div align=center><a href="https://pypi.org/project/grand-graph/"><img src="https://img.shields.io/pypi/v/grand-graph?style=for-the-badge" /></a> <a href="https://app.codecov.io/gh/aplbrain/grand"><img alt="Codecov" src="https://img.shields.io/codecov/c/github/aplbrain/grand?style=for-the-badge"></a> <a href="https://github.com/aplbrain/grand/actions/workflows/python-package.yml"><img alt="GitHub Workflow Status (with branch)" src="https://img.shields.io/github/actions/workflow/status/aplbrain/grand/python-package.yml?style=for-the-badge"></a></div>
+<div align=center><a href="https://pypi.org/project/grand-graph/"><img src="https://img.shields.io/pypi/v/grand-graph?style=for-the-badge" /></a> <a href="https://app.codecov.io/gh/aplbrain/grand"><img alt="Codecov" src="https://img.shields.io/codecov/c/github/aplbrain/grand?style=for-the-badge"></a></div>
+
+<!--  <a href="https://github.com/aplbrain/grand/actions/workflows/python-package.yml"><img alt="GitHub Workflow Status (with branch)" src="https://img.shields.io/github/actions/workflow/status/aplbrain/grand/python-package.yml?style=for-the-badge"></a> -->
 
 <br />
 
