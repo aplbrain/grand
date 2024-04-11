@@ -386,7 +386,7 @@ class SQLBackend(Backend):
             res = self._connection.execute(
                 self._edge_table.select().where(
                     self._edge_table.c[self._edge_source_key] == str(u)
-                )
+                ).order_by(self._edge_table.c[self._primary_key])
             ).fetchall()
         else:
             res = self._connection.execute(
@@ -395,7 +395,7 @@ class SQLBackend(Backend):
                         (self._edge_table.c[self._edge_source_key] == str(u)),
                         (self._edge_table.c[self._edge_target_key] == str(u)),
                     )
-                )
+                ).order_by(self._edge_table.c[self._primary_key])
             ).fetchall()
 
         res = [x._asdict() for x in res]
@@ -404,7 +404,7 @@ class SQLBackend(Backend):
             return {
                 (
                     r[self._edge_source_key]
-                    if r[self._edge_source_key] != u
+                    if r[self._edge_source_key] != str(u)
                     else r[self._edge_target_key]
                 ): r["_metadata"]
                 for r in res
@@ -414,7 +414,7 @@ class SQLBackend(Backend):
             [
                 (
                     r[self._edge_source_key]
-                    if r[self._edge_source_key] != u
+                    if r[self._edge_source_key] != str(u)
                     else r[self._edge_target_key]
                 )
                 for r in res
@@ -438,7 +438,7 @@ class SQLBackend(Backend):
             res = self._connection.execute(
                 self._edge_table.select().where(
                     self._edge_table.c[self._edge_target_key] == str(u)
-                )
+                ).order_by(self._edge_table.c[self._primary_key])
             ).fetchall()
         else:
             res = self._connection.execute(
@@ -447,7 +447,7 @@ class SQLBackend(Backend):
                         (self._edge_table.c[self._edge_target_key] == str(u)),
                         (self._edge_table.c[self._edge_source_key] == str(u)),
                     )
-                )
+                ).order_by(self._edge_table.c[self._primary_key])
             ).fetchall()
 
         res = [x._asdict() for x in res]
@@ -456,7 +456,7 @@ class SQLBackend(Backend):
             return {
                 (
                     r[self._edge_source_key]
-                    if r[self._edge_source_key] != u
+                    if r[self._edge_source_key] != str(u)
                     else r[self._edge_target_key]
                 ): r["_metadata"]
                 for r in res
@@ -466,7 +466,7 @@ class SQLBackend(Backend):
             [
                 (
                     r[self._edge_source_key]
-                    if r[self._edge_source_key] != u
+                    if r[self._edge_source_key] != str(u)
                     else r[self._edge_target_key]
                 )
                 for r in res
@@ -524,10 +524,9 @@ class SQLBackend(Backend):
         if where_clause is not None:
             query = query.where(where_clause)
 
-        results = [x._asdict() for x in self._connection.execute(query).fetchall()]
         results = {
-            r[self._edge_source_key]: r[1]
-            for r in results
+            r[0]: r[1]
+            for r in self._connection.execute(query)
         }
 
         if nbunch and not isinstance(nbunch, (list, tuple)):
@@ -570,10 +569,9 @@ class SQLBackend(Backend):
         if where_clause is not None:
             query = query.where(where_clause)
 
-        results = [x._asdict() for x in self._connection.execute(query).fetchall()]
         results = {
-            r[self._edge_target_key]: r[1]
-            for r in results
+            r[0]: r[1]
+            for r in self._connection.execute(query)
         }
 
         if nbunch and not isinstance(nbunch, (list, tuple)):
