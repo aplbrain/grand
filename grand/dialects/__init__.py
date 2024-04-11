@@ -101,8 +101,14 @@ class NetworkXDialect(nx.Graph):
     def add_node(self, name: Hashable, **kwargs):
         return self.parent.backend.add_node(name, kwargs)
 
+    def add_nodes_from(self, nodes_for_adding, **attr):
+        return self.parent.backend.add_nodes_from(nodes_for_adding, **attr)
+
     def add_edge(self, u: Hashable, v: Hashable, **kwargs):
         return self.parent.backend.add_edge(u, v, kwargs)
+
+    def add_edges_from(self, ebunch_to_add, **attr):
+        return self.parent.backend.add_edges_from(ebunch_to_add, **attr)
 
     def remove_node(self, name: Hashable):
         if hasattr(self.parent.backend, "remove_node"):

@@ -65,6 +65,17 @@ class Backend(abc.ABC):
         """
         ...
 
+    def add_nodes_from(self, nodes_for_adding, **attr):
+        """
+        Add nodes to the graph.
+
+        Arguments:
+            nodes_for_adding: nodes to add
+            attr: additional attributes
+        """
+        for node, metadata in nodes_for_adding:
+            self.add_node(node, {**attr, **metadata})
+
     def get_node_by_id(self, node_name: Hashable):
         """
         Return the data associated with a node.
@@ -124,6 +135,17 @@ class Backend(abc.ABC):
 
         """
         ...
+
+    def add_edges_from(self, ebunch_to_add, **attr):
+        """
+        Add new edges to the graph.
+
+        Arguments:
+            ebunch_to_add: list of (source, target, metadata)
+            attr: additional common attributes
+        """
+        for u, v, metadata in ebunch_to_add:
+            self.add_edge(u, v, {**attr, **metadata})
 
     def all_edges_as_iterable(self, include_metadata: bool = False) -> Collection:
         """
@@ -287,13 +309,17 @@ class InMemoryCachedBackend(CachedBackend):
 
     _default_uncacheable_methods = [
         "add_node",
+        "add_nodes_from",
         "add_edge",
+        "add_edges_from",
         "ingest_from_edgelist_dataframe",
     ]
 
     _default_write_methods = [
         "add_node",
+        "add_nodes_from",
         "add_edge",
+        "add_edges_from",
         "ingest_from_edgelist_dataframe",
     ]
 
