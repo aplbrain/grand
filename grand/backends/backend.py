@@ -222,6 +222,19 @@ class Backend(abc.ABC):
         """
         return len([i for i in self.all_nodes_as_iterable()])
 
+    def get_edge_count(self) -> int:
+        """
+        Get an integer count of the number of edges in this graph.
+
+        Arguments:
+            None
+
+        Returns:
+            int: The count of edges
+
+        """
+        return len([i for i in self.all_edges_as_iterable()])
+
     def degree(self, u: Hashable) -> int:
         """
         Get the degree of a node.
