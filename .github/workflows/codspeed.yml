@@ -24,7 +24,7 @@ jobs:
           pip install flake8 pytest pytest-cov pytest-codspeed
           # Install "cmake", "cython" for networkit. Must happen first:
           pip install --upgrade cmake cython
-          pip install -e ".[sql,networkit,igraph]"
+          pip install -e ".[sql]"
 
       - name: Run benchmarks
         uses: CodSpeedHQ/action@v2

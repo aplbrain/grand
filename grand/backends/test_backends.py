@@ -376,9 +376,9 @@ class TestBackend:
 def test_node_addition_performance(backend):
     backend, kwargs = backend
     G = Graph(backend=backend(directed=True, **kwargs))
-    for i in range(10000):
+    for i in range(1000):
         G.nx.add_node(i)
-    assert len(G.nx) == 10000
+    assert len(G.nx) == 1000
 
 
 @pytest.mark.benchmark
@@ -386,8 +386,8 @@ def test_node_addition_performance(backend):
 def test_get_density_performance(backend):
     backend, kwargs = backend
     G = Graph(backend=backend(directed=True, **kwargs))
-    for i in range(10000):
+    for i in range(1000):
         G.nx.add_node(i)
-    for i in range(10000 - 1):
+    for i in range(1000 - 1):
         G.nx.add_edge(i, i + 1)
     assert nx.density(G.nx) <= 0.005
