@@ -180,6 +180,9 @@ class NetworkXDialect(nx.Graph):
     def is_directed(self):
         return self.parent.backend.is_directed()
 
+    def __len__(self):
+        return self.parent.backend.get_node_count()
+
 
 class IGraphDialect(nx.Graph):
     """
@@ -218,7 +221,7 @@ class IGraphDialect(nx.Graph):
         ]
 
     def add_edges(self, edgelist: List[Tuple[Hashable, Hashable]]):
-        for (u, v) in edgelist:
+        for u, v in edgelist:
             self.parent.backend.add_edge(u, v, {})
 
     def get_edgelist(self):
@@ -279,7 +282,7 @@ class NetworkitDialect:
 
     def density(self):
         # TODO: implement backend#degree?
-        E = len(self.parent.backend.all_edges_as_iterable())
+        E = self.parent.backend.get_edge_count()
         V = self.parent.backend.get_node_count()
 
         if self.parent.backend.is_directed():
@@ -291,7 +294,7 @@ class NetworkitDialect:
         return self.parent.backend.get_node_count()
 
     def numberOfEdges(self) -> int:
-        return len(self.parent.backend.all_edges_as_iterable())
+        return self.parent.backend.get_edge_count()
 
     def removeEdge(self, u, v) -> None:
         raise NotImplementedError

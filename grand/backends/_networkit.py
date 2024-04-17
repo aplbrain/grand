@@ -281,7 +281,7 @@ class NetworkitBackend(Backend):
             [self._names.get_name(i) for i in self._nk_graph.iterInNeighbors(my_id)]
         )
 
-    def get_node_count(self) -> Iterable:
+    def get_node_count(self) -> int:
         """
         Get an integer count of the number of nodes in this graph.
 
@@ -292,4 +292,17 @@ class NetworkitBackend(Backend):
             int: The count of nodes
 
         """
-        return len([i for i in self.all_nodes_as_iterable()])
+        return self._nk_graph.numberOfNodes()
+
+    def get_edge_count(self) -> int:
+        """
+        Get an integer count of the number of edges in this graph.
+
+        Arguments:
+            None
+
+        Returns:
+            int: The count of edges
+
+        """
+        return self._nk_graph.numberOfEdges()

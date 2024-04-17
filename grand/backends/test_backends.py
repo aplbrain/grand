@@ -369,3 +369,11 @@ class TestBackend:
         assert G.nx.in_degree("foo") == 0
         assert G.nx.in_degree("bar") == 1
         assert G.nx.in_degree("baz") == 1
+
+    def test_node_count(self, backend):
+        backend, kwargs = backend
+        G = Graph(backend=backend(**kwargs))
+        G.nx.add_node("foo", bar=True)
+        G.nx.add_node("bar", foo=True)
+        assert len(G.nx) == 2
+

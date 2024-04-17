@@ -314,5 +314,18 @@ class GremlinBackend(Backend):
         """
         return self._g.V().count().toList()[0]
 
+    def get_edge_count(self) -> int:
+        """
+        Get an integer count of the number of edges in this graph.
+
+        Arguments:
+            None
+
+        Returns:
+            int: The count of edges
+
+        """
+        return self._g.E().count().toList()[0]
+
     def teardown(self) -> None:
         self._g.V().drop().toList()

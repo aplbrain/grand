@@ -120,11 +120,13 @@ class DataFrameBackend(Backend):
         if self._node_df is not None:
             return [
                 (
-                    node_id,
-                    row.to_dict(),
+                    (
+                        node_id,
+                        row.to_dict(),
+                    )
+                    if include_metadata
+                    else node_id
                 )
-                if include_metadata
-                else node_id
                 for node_id, row in self._node_df.iterrows()
             ]
 
@@ -355,9 +357,11 @@ class DataFrameBackend(Backend):
         else:
             return iter(
                 [
-                    row[self._edge_df_source_column]
-                    if row[self._edge_df_source_column] != u
-                    else row[self._edge_df_target_column]
+                    (
+                        row[self._edge_df_source_column]
+                        if row[self._edge_df_source_column] != u
+                        else row[self._edge_df_target_column]
+                    )
                     for _, row in self._edge_df[
                         (self._edge_df[self._edge_df_source_column] == u)
                         | (self._edge_df[self._edge_df_target_column] == u)
@@ -430,9 +434,11 @@ class DataFrameBackend(Backend):
         else:
             return iter(
                 [
-                    row[self._edge_df_source_column]
-                    if row[self._edge_df_target_column] != u
-                    else row[self._edge_df_target_column]
+                    (
+                        row[self._edge_df_source_column]
+                        if row[self._edge_df_target_column] != u
+                        else row[self._edge_df_target_column]
+                    )
                     for _, row in self._edge_df[
                         (self._edge_df[self._edge_df_target_column] == u)
                         | (self._edge_df[self._edge_df_source_column] == u)
@@ -459,6 +465,19 @@ class DataFrameBackend(Backend):
                 set(self._edge_df[self._edge_df_target_column])
             )
         )
+
+    def get_edge_count(self) -> int:
+        """
+        Get an integer count of the number of edges in this graph.
+
+        Arguments:
+            None
+
+        Returns:
+            int: The count of edges
+
+        """
+        return len(self._edge_df)
 
     def ingest_from_edgelist_dataframe(
         self, edgelist: pd.DataFrame, source_column: str, target_column: str

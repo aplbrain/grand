@@ -295,18 +295,15 @@ class Backend(abc.ABC):
 
 
 class CachedBackend(Backend):
-
     """
     A proxy Backend that serves as a cache for any other grand.Backend.
 
     """
 
-    def __init__(self, backend: Backend):
-        ...
+    def __init__(self, backend: Backend): ...
 
 
 class InMemoryCachedBackend(CachedBackend):
-
     """
     A proxy Backend that serves as a cache for any other grand.Backend.
 

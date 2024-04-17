@@ -191,11 +191,13 @@ class DynamoDBBackend(Backend):
         """
         return [
             (
-                node[self._primary_key],
-                {k: v for k, v in node.items() if k not in [self._primary_key]},
+                (
+                    node[self._primary_key],
+                    {k: v for k, v in node.items() if k not in [self._primary_key]},
+                )
+                if include_metadata
+                else node[self._primary_key]
             )
-            if include_metadata
-            else node[self._primary_key]
             for node in self._scan_table(self._node_table)
         ]
 
@@ -264,9 +266,11 @@ class DynamoDBBackend(Backend):
 
         """
         return [
-            (edge[self._edge_source_key], edge[self._edge_target_key], edge)
-            if include_metadata
-            else (edge[self._edge_source_key], edge[self._edge_target_key])
+            (
+                (edge[self._edge_source_key], edge[self._edge_target_key], edge)
+                if include_metadata
+                else (edge[self._edge_source_key], edge[self._edge_target_key])
+            )
             for edge in self._scan_table(self._edge_table)
         ]
 
@@ -432,6 +436,21 @@ class DynamoDBBackend(Backend):
 
         """
         return self._client.describe_table(TableName=self._node_table_name)["Table"][
+            "ItemCount"
+        ]
+
+    def get_edge_count(self) -> int:
+        """
+        Get an integer count of the number of edges in this graph.
+
+        Arguments:
+            None
+
+        Returns:
+            int: The count of edges
+
+        """
+        return self._client.describe_table(TableName=self._edge_table_name)["Table"][
             "ItemCount"
         ]
 
