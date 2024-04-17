@@ -183,6 +183,12 @@ class NetworkXDialect(nx.Graph):
     def __len__(self):
         return self.parent.backend.get_node_count()
 
+    def number_of_nodes(self):
+        return self.parent.backend.get_node_count()
+
+    def number_of_edges(self):
+        return self.parent.backend.get_edge_count()
+
 
 class IGraphDialect(nx.Graph):
     """
