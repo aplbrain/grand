@@ -1,7 +1,11 @@
 # CHANGELOG
 
-## **0.5.0** (Unreleased)
+## **0.5.0** (April 17, 2024)
 
+-   Features
+    -   https://github.com/aplbrain/grand/pull/45 (thanks @davidmezzetti!)
+        -   Improved support for SQL backend, including an index on edge.sources and edge.targets
+        -   Improved batch-adding performance for nodes and edges
 -   Housekeeping
     -   Removed extra arguments to Graph constructor and improved Graph kwargs handing
     -   Added `grand.DiGraph` convenience wrapper for directed graphs
