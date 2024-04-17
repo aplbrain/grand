@@ -74,11 +74,11 @@ class SQLBackend(Backend):
         self._node_table.create(self._engine, checkfirst=True)
 
         source_column = sqlalchemy.Column(
-                self._edge_source_key, sqlalchemy.String(_DEFAULT_SQL_STR_LEN)
+            self._edge_source_key, sqlalchemy.String(_DEFAULT_SQL_STR_LEN)
         )
 
         target_column = sqlalchemy.Column(
-                self._edge_target_key, sqlalchemy.String(_DEFAULT_SQL_STR_LEN)
+            self._edge_target_key, sqlalchemy.String(_DEFAULT_SQL_STR_LEN)
         )
 
         # Create edges table
@@ -92,7 +92,7 @@ class SQLBackend(Backend):
             ),
             sqlalchemy.Column("_metadata", sqlalchemy.JSON),
             source_column,
-            target_column
+            target_column,
         )
         self._edge_table.create(self._engine, checkfirst=True)
 
@@ -156,10 +156,13 @@ class SQLBackend(Backend):
         return node_name
 
     def add_nodes_from(self, nodes_for_adding, **attr):
-        nodes = [{
-            self._primary_key: node,
-            "_metadata": {**attr, **metadata},
-        } for node, metadata in nodes_for_adding]
+        nodes = [
+            {
+                self._primary_key: node,
+                "_metadata": {**attr, **metadata},
+            }
+            for node, metadata in nodes_for_adding
+        ]
 
         self._connection.execute(self._node_table.insert(), nodes)
 
@@ -204,7 +207,9 @@ class SQLBackend(Backend):
         if include_metadata:
             sql = self._node_table.select()
         else:
-            sql = self._node_table.select().with_only_columns(self._node_table.c[self._primary_key])
+            sql = self._node_table.select().with_only_columns(
+                self._node_table.c[self._primary_key]
+            )
 
         results = []
         for x in self._connection.execute(sql):
@@ -277,12 +282,15 @@ class SQLBackend(Backend):
         return pk
 
     def add_edges_from(self, ebunch_to_add, **attr):
-        edges = [{
-            self._primary_key: f"__{u}__{v}",
-            self._edge_source_key: u,
-            self._edge_target_key: v,
-            "_metadata": {**attr, **metadata},
-        } for u, v, metadata in ebunch_to_add]
+        edges = [
+            {
+                self._primary_key: f"__{u}__{v}",
+                self._edge_source_key: u,
+                self._edge_target_key: v,
+                "_metadata": {**attr, **metadata},
+            }
+            for u, v, metadata in ebunch_to_add
+        ]
 
         self._connection.execute(self._edge_table.insert(), edges)
 
@@ -299,7 +307,7 @@ class SQLBackend(Backend):
 
         columns = [
             self._node_table.c[self._edge_source_key],
-            self._node_table.c[self._edge_target_key]
+            self._node_table.c[self._edge_target_key],
         ]
 
         if include_metadata:
@@ -345,28 +353,26 @@ class SQLBackend(Backend):
         """
         if self._directed:
             pk = f"__{u}__{v}"
-            return (
-                self._connection.execute(
-                    self._edge_table.select().where(
-                        self._edge_table.c[self._primary_key] == pk
-                    )
+            result = self._connection.execute(
+                self._edge_table.select().where(
+                    self._edge_table.c[self._primary_key] == pk
                 )
-                .fetchone()
-                ._metadata
-            )
+            ).fetchone()
+            if result:
+                return result._metadata
+            raise KeyError(f"Edge {u}-{v} not found.")
         else:
-            return (
-                self._connection.execute(
-                    self._edge_table.select().where(
-                        or_(
-                            (self._edge_table.c[self._primary_key] == f"__{u}__{v}"),
-                            (self._edge_table.c[self._primary_key] == f"__{v}__{u}"),
-                        )
+            result = self._connection.execute(
+                self._edge_table.select().where(
+                    or_(
+                        (self._edge_table.c[self._primary_key] == f"__{u}__{v}"),
+                        (self._edge_table.c[self._primary_key] == f"__{v}__{u}"),
                     )
                 )
-                .fetchone()
-                ._metadata
-            )
+            ).fetchone()
+            if result:
+                return result._metadata
+            raise KeyError(f"Edge {u}-{v} not found.")
 
     def get_node_neighbors(
         self, u: Hashable, include_metadata: bool = False
@@ -384,18 +390,20 @@ class SQLBackend(Backend):
 
         if self._directed:
             res = self._connection.execute(
-                self._edge_table.select().where(
-                    self._edge_table.c[self._edge_source_key] == str(u)
-                ).order_by(self._edge_table.c[self._primary_key])
+                self._edge_table.select()
+                .where(self._edge_table.c[self._edge_source_key] == str(u))
+                .order_by(self._edge_table.c[self._primary_key])
             ).fetchall()
         else:
             res = self._connection.execute(
-                self._edge_table.select().where(
+                self._edge_table.select()
+                .where(
                     or_(
                         (self._edge_table.c[self._edge_source_key] == str(u)),
                         (self._edge_table.c[self._edge_target_key] == str(u)),
                     )
-                ).order_by(self._edge_table.c[self._primary_key])
+                )
+                .order_by(self._edge_table.c[self._primary_key])
             ).fetchall()
 
         res = [x._asdict() for x in res]
@@ -436,18 +444,20 @@ class SQLBackend(Backend):
         """
         if self._directed:
             res = self._connection.execute(
-                self._edge_table.select().where(
-                    self._edge_table.c[self._edge_target_key] == str(u)
-                ).order_by(self._edge_table.c[self._primary_key])
+                self._edge_table.select()
+                .where(self._edge_table.c[self._edge_target_key] == str(u))
+                .order_by(self._edge_table.c[self._primary_key])
             ).fetchall()
         else:
             res = self._connection.execute(
-                self._edge_table.select().where(
+                self._edge_table.select()
+                .where(
                     or_(
                         (self._edge_table.c[self._edge_target_key] == str(u)),
                         (self._edge_table.c[self._edge_source_key] == str(u)),
                     )
-                ).order_by(self._edge_table.c[self._primary_key])
+                )
+                .order_by(self._edge_table.c[self._primary_key])
             ).fetchall()
 
         res = [x._asdict() for x in res]
@@ -473,7 +483,7 @@ class SQLBackend(Backend):
             ]
         )
 
-    def get_node_count(self) -> Iterable:
+    def get_node_count(self) -> int:
         """
         Get an integer count of the number of nodes in this graph.
 
@@ -486,6 +496,21 @@ class SQLBackend(Backend):
         """
         return self._connection.execute(
             select(func.count()).select_from(self._node_table)
+        ).scalar()
+
+    def get_edge_count(self) -> int:
+        """
+        Get an integer count of the number of edges in this graph.
+
+        Arguments:
+            None
+
+        Returns:
+            int: The count of edges
+
+        """
+        return self._connection.execute(
+            select(func.count()).select_from(self._edge_table)
         ).scalar()
 
     def out_degrees(self, nbunch=None):
@@ -503,7 +528,9 @@ class SQLBackend(Backend):
         if nbunch is None:
             where_clause = None
         elif isinstance(nbunch, (list, tuple)):
-            where_clause = self._edge_table.c[self._edge_source_key].in_([str(x) for x in nbunch])
+            where_clause = self._edge_table.c[self._edge_source_key].in_(
+                [str(x) for x in nbunch]
+            )
         else:
             # single node:
             where_clause = self._edge_table.c[self._edge_source_key] == str(nbunch)
@@ -524,10 +551,7 @@ class SQLBackend(Backend):
         if where_clause is not None:
             query = query.where(where_clause)
 
-        results = {
-            r[0]: r[1]
-            for r in self._connection.execute(query)
-        }
+        results = {r[0]: r[1] for r in self._connection.execute(query)}
 
         if nbunch and not isinstance(nbunch, (list, tuple)):
             return results.get(nbunch, 0)
@@ -548,7 +572,9 @@ class SQLBackend(Backend):
         if nbunch is None:
             where_clause = None
         elif isinstance(nbunch, (list, tuple)):
-            where_clause = self._edge_table.c[self._edge_target_key].in_([str(x) for x in nbunch])
+            where_clause = self._edge_table.c[self._edge_target_key].in_(
+                [str(x) for x in nbunch]
+            )
         else:
             # single node:
             where_clause = self._edge_table.c[self._edge_target_key] == str(nbunch)
@@ -569,10 +595,7 @@ class SQLBackend(Backend):
         if where_clause is not None:
             query = query.where(where_clause)
 
-        results = {
-            r[0]: r[1]
-            for r in self._connection.execute(query)
-        }
+        results = {r[0]: r[1] for r in self._connection.execute(query)}
 
         if nbunch and not isinstance(nbunch, (list, tuple)):
             return results.get(nbunch, 0)

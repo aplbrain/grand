@@ -289,14 +289,12 @@ class DataFrameBackend(Backend):
 
         """
         if self._directed:
-            return (
-                self._edge_df[
-                    (self._edge_df[self._edge_df_source_column] == u)
-                    & (self._edge_df[self._edge_df_target_column] == v)
-                ]
-                .iloc[0]
-                .to_dict()
-            )
+            result = self._edge_df[
+                (self._edge_df[self._edge_df_source_column] == u)
+                & (self._edge_df[self._edge_df_target_column] == v)
+            ]
+            if len(result):
+                return self._edge_as_dict(result.iloc[0])
 
         else:
             left = self._edge_df[

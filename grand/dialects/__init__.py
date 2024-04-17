@@ -186,8 +186,12 @@ class NetworkXDialect(nx.Graph):
     def number_of_nodes(self):
         return self.parent.backend.get_node_count()
 
-    def number_of_edges(self):
-        return self.parent.backend.get_edge_count()
+    def number_of_edges(self, u=None, v=None):
+        if u is None and v is None:
+            return self.parent.backend.get_edge_count()
+        # Get the number of edges between u and v. because we don't support
+        # multigraphs, this is 1 if there is an edge, 0 otherwise.
+        return 1 if self.parent.backend.has_edge(u, v) else 0
 
 
 class IGraphDialect(nx.Graph):

@@ -118,6 +118,22 @@ class Backend(abc.ABC):
         except KeyError:
             return False
 
+    def has_edge(self, u: Hashable, v: Hashable) -> bool:
+        """
+        Return true if the edge exists in the graph.
+
+        Arguments:
+            u (Hashable): The source node ID
+            v (Hashable): The target node ID
+
+        Returns:
+            bool: True if the edge exists
+        """
+        try:
+            return self.get_edge_by_id(u, v) is not None
+        except KeyError:
+            return False
+
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
         """
         Add a new edge to the graph between two nodes.
