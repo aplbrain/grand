@@ -258,3 +258,16 @@ class IGraphBackend(Backend):
 
         """
         return self._ig.vcount()
+
+    def get_edge_count(self) -> int:
+        """
+        Get an integer count of the number of edges in this graph.
+
+        Arguments:
+            None
+
+        Returns:
+            int: The count of edges
+
+        """
+        return self._ig.ecount()

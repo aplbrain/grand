@@ -180,6 +180,19 @@ class NetworkXDialect(nx.Graph):
     def is_directed(self):
         return self.parent.backend.is_directed()
 
+    def __len__(self):
+        return self.parent.backend.get_node_count()
+
+    def number_of_nodes(self):
+        return self.parent.backend.get_node_count()
+
+    def number_of_edges(self, u=None, v=None):
+        if u is None and v is None:
+            return self.parent.backend.get_edge_count()
+        # Get the number of edges between u and v. because we don't support
+        # multigraphs, this is 1 if there is an edge, 0 otherwise.
+        return 1 if self.parent.backend.has_edge(u, v) else 0
+
 
 class IGraphDialect(nx.Graph):
     """
@@ -218,7 +231,7 @@ class IGraphDialect(nx.Graph):
         ]
 
     def add_edges(self, edgelist: List[Tuple[Hashable, Hashable]]):
-        for (u, v) in edgelist:
+        for u, v in edgelist:
             self.parent.backend.add_edge(u, v, {})
 
     def get_edgelist(self):
@@ -279,7 +292,7 @@ class NetworkitDialect:
 
     def density(self):
         # TODO: implement backend#degree?
-        E = len(self.parent.backend.all_edges_as_iterable())
+        E = self.parent.backend.get_edge_count()
         V = self.parent.backend.get_node_count()
 
         if self.parent.backend.is_directed():
@@ -291,7 +304,7 @@ class NetworkitDialect:
         return self.parent.backend.get_node_count()
 
     def numberOfEdges(self) -> int:
-        return len(self.parent.backend.all_edges_as_iterable())
+        return self.parent.backend.get_edge_count()
 
     def removeEdge(self, u, v) -> None:
         raise NotImplementedError

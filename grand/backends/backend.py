@@ -118,6 +118,22 @@ class Backend(abc.ABC):
         except KeyError:
             return False
 
+    def has_edge(self, u: Hashable, v: Hashable) -> bool:
+        """
+        Return true if the edge exists in the graph.
+
+        Arguments:
+            u (Hashable): The source node ID
+            v (Hashable): The target node ID
+
+        Returns:
+            bool: True if the edge exists
+        """
+        try:
+            return self.get_edge_by_id(u, v) is not None
+        except KeyError:
+            return False
+
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
         """
         Add a new edge to the graph between two nodes.
@@ -222,6 +238,19 @@ class Backend(abc.ABC):
         """
         return len([i for i in self.all_nodes_as_iterable()])
 
+    def get_edge_count(self) -> int:
+        """
+        Get an integer count of the number of edges in this graph.
+
+        Arguments:
+            None
+
+        Returns:
+            int: The count of edges
+
+        """
+        return len([i for i in self.all_edges_as_iterable()])
+
     def degree(self, u: Hashable) -> int:
         """
         Get the degree of a node.
@@ -282,18 +311,15 @@ class Backend(abc.ABC):
 
 
 class CachedBackend(Backend):
-
     """
     A proxy Backend that serves as a cache for any other grand.Backend.
 
     """
 
-    def __init__(self, backend: Backend):
-        ...
+    def __init__(self, backend: Backend): ...
 
 
 class InMemoryCachedBackend(CachedBackend):
-
     """
     A proxy Backend that serves as a cache for any other grand.Backend.
 

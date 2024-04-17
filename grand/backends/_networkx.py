@@ -168,6 +168,19 @@ class NetworkXBackend(Backend):
         """
         return len(self._nx_graph)
 
+    def get_edge_count(self) -> int:
+        """
+        Get an integer count of the number of edges in this graph.
+
+        Arguments:
+            None
+
+        Returns:
+            int: The count of edges
+
+        """
+        return len(self._nx_graph.edges)
+
     def ingest_from_edgelist_dataframe(
         self, edgelist: pd.DataFrame, source_column: str, target_column: str
     ) -> dict:
@@ -200,6 +213,3 @@ class NetworkXBackend(Backend):
             "edge_count": len(edgelist),
             "edge_duration": time.time() - tic,
         }
-
-    def teardown(self) -> None:
-        return

@@ -43,6 +43,7 @@ backend_test_params = [
             os.environ.get("TEST_NETWORKXBACKEND", default="1") != "1",
             reason="NetworkX Backend skipped because $TEST_NETWORKXBACKEND != 1.",
         ),
+        id="NetworkXBackend",
     ),
 ]
 backend_test_params = [
@@ -52,6 +53,7 @@ backend_test_params = [
             os.environ.get("TEST_DATAFRAMEBACKEND", default="1") != "1",
             reason="DataFrameBackend skipped because $TEST_DATAFRAMEBACKEND != 1.",
         ),
+        id="DataFrameBackend",
     ),
 ]
 
@@ -63,6 +65,7 @@ if _CAN_IMPORT_DYNAMODB:
                 os.environ.get("TEST_DYNAMODB", default="1") != "1",
                 reason="DynamoDB Backend skipped because $TEST_DYNAMODB != 0 or boto3 is not installed",
             ),
+            id="DynamoDBBackend",
         ),
     )
 
@@ -74,6 +77,7 @@ if _CAN_IMPORT_SQL:
                 os.environ.get("TEST_SQLBACKEND", default="1") != "1",
                 reason="SQL Backend skipped because $TEST_SQLBACKEND != 1 or sqlalchemy is not installed.",
             ),
+            id="SQLBackend",
         ),
     )
 if _CAN_IMPORT_IGRAPH:
@@ -84,6 +88,7 @@ if _CAN_IMPORT_IGRAPH:
                 os.environ.get("TEST_IGRAPHBACKEND", default="1") != "1",
                 reason="IGraph Backend skipped because $TEST_IGRAPHBACKEND != 1 or igraph is not installed.",
             ),
+            id="IGraphBackend",
         ),
     )
 if _CAN_IMPORT_NETWORKIT:
@@ -94,6 +99,7 @@ if _CAN_IMPORT_NETWORKIT:
                 os.environ.get("TEST_NETWORKIT", default="1") != "1",
                 reason="Networkit Backend skipped because $TEST_NETWORKIT != 1 or networkit is not installed.",
             ),
+            id="NetworkitBackend",
         ),
     )
 
@@ -107,6 +113,7 @@ if os.environ.get("TEST_NETWORKITBACKEND") == "1":
                 os.environ.get("TEST_NETWORKITBACKEND") != "1",
                 reason="Networkit Backend skipped because $TEST_NETWORKITBACKEND != 1.",
             ),
+            id="NetworkitBackend",
         ),
     )
 
@@ -120,6 +127,7 @@ if os.environ.get("TEST_IGRAPHBACKEND") == "1":
                 os.environ.get("TEST_IGRAPHBACKEND") != "1",
                 reason="Networkit Backend skipped because $TEST_IGRAPHBACKEND != 1.",
             ),
+            id="IGraphBackend",
         ),
     )
 
@@ -369,6 +377,13 @@ class TestBackend:
         assert G.nx.in_degree("foo") == 0
         assert G.nx.in_degree("bar") == 1
         assert G.nx.in_degree("baz") == 1
+
+    def test_node_count(self, backend):
+        backend, kwargs = backend
+        G = Graph(backend=backend(**kwargs))
+        G.nx.add_node("foo", bar=True)
+        G.nx.add_node("bar", foo=True)
+        assert len(G.nx) == 2
 
 
 @pytest.mark.benchmark
