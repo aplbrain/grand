@@ -377,3 +377,24 @@ class TestBackend:
         G.nx.add_node("bar", foo=True)
         assert len(G.nx) == 2
 
+
+@pytest.mark.benchmark
+@pytest.mark.parametrize("backend", backend_test_params)
+def test_node_addition_performance(backend):
+    backend, kwargs = backend
+    G = Graph(backend=backend(directed=True, **kwargs))
+    for i in range(1000):
+        G.nx.add_node(i)
+    assert len(G.nx) == 1000
+
+
+@pytest.mark.benchmark
+@pytest.mark.parametrize("backend", backend_test_params)
+def test_get_density_performance(backend):
+    backend, kwargs = backend
+    G = Graph(backend=backend(directed=True, **kwargs))
+    for i in range(1000):
+        G.nx.add_node(i)
+    for i in range(1000 - 1):
+        G.nx.add_edge(i, i + 1)
+    assert nx.density(G.nx) <= 0.005
