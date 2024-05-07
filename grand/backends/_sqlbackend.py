@@ -671,3 +671,9 @@ class SQLBackend(Backend):
             "edge_count": len(edgelist),
             "edge_duration": edge_toc,
         }
+
+    def commit(self):
+        self._connection.commit()
+
+    def close(self):
+        self._connection.close()
