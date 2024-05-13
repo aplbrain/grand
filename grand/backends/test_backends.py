@@ -131,6 +131,29 @@ if os.environ.get("TEST_IGRAPHBACKEND") == "1":
         ),
     )
 
+# @pytest.mark.parametrize("backend", backend_test_params)
+class TestBackendPersistence:
+    def test_sqlite_persistence(self):
+        if not _CAN_IMPORT_SQL:
+            return
+
+        dbpath = "grand_peristence_test_temp.db"
+        url = "sqlite:///"+dbpath
+
+        #arrange
+        backend = SQLBackend(db_url=url, directed=True)
+        node0 = backend.add_node("A",{"foo":"bar"})
+        backend.commit()
+        backend.close()
+        #act
+        backend = SQLBackend(db_url=url, directed=True)
+        nodes = list(backend.all_nodes_as_iterable())
+        #assert
+        assert node0 in nodes
+        #cleanup
+        os.remove(dbpath)
+
+
 
 @pytest.mark.parametrize("backend", backend_test_params)
 class TestBackend:
