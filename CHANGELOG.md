@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## **0.5.1** (May 13, 2024)
+
+-   Bugfixes:
+    -   Fixes SQLBackend bug where graphs would not commit down to disk after transactions (#51, thanks @acthecoder23!)
+
 ## **0.5.0** (April 17, 2024)
 
 -   Features
