@@ -306,14 +306,14 @@ class SQLBackend(Backend):
         """
 
         columns = [
-            self._node_table.c[self._edge_source_key],
-            self._node_table.c[self._edge_target_key],
+            self._edge_table.c[self._edge_source_key],
+            self._edge_table.c[self._edge_target_key],
         ]
 
         if include_metadata:
-            columns.append(self._node_table.c["_metadata"])
+            columns.append(self._edge_table.c["_metadata"])
 
-        sql = self._node_table.select().with_only_columns(columns)
+        sql = self._edge_table.select().with_only_columns(*columns)
         return self._connection.execute(sql).fetchall()
 
     def get_node_by_id(self, node_name: Hashable):

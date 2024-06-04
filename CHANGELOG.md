@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## **0.5.2** (June 4, 2024)
+
+-   Bugfixes:
+    -   Fixes SQLBackend mistakenly referencing Nodes table for enumeration of Edges (#55, #56)
+
 ## **0.5.1** (May 13, 2024)
 
 -   Bugfixes:
