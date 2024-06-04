@@ -131,6 +131,7 @@ if os.environ.get("TEST_IGRAPHBACKEND") == "1":
         ),
     )
 
+
 # @pytest.mark.parametrize("backend", backend_test_params)
 class TestBackendPersistence:
     def test_sqlite_persistence(self):
@@ -138,21 +139,20 @@ class TestBackendPersistence:
             return
 
         dbpath = "grand_peristence_test_temp.db"
-        url = "sqlite:///"+dbpath
+        url = "sqlite:///" + dbpath
 
-        #arrange
+        # arrange
         backend = SQLBackend(db_url=url, directed=True)
-        node0 = backend.add_node("A",{"foo":"bar"})
+        node0 = backend.add_node("A", {"foo": "bar"})
         backend.commit()
         backend.close()
-        #act
+        # act
         backend = SQLBackend(db_url=url, directed=True)
         nodes = list(backend.all_nodes_as_iterable())
-        #assert
+        # assert
         assert node0 in nodes
-        #cleanup
+        # cleanup
         os.remove(dbpath)
-
 
 
 @pytest.mark.parametrize("backend", backend_test_params)
@@ -343,6 +343,12 @@ class TestBackend:
         G = Graph(backend=backend(**kwargs))
         G.nx.add_edge("foo", "bar", baz=True)
         assert list(G.nx.edges(data=True)) == [("foo", "bar", {"baz": True})]
+
+    def test_can_get_edges(self, backend):
+        backend, kwargs = backend
+        G = Graph(backend=backend(**kwargs))
+        G.nx.add_edge("foo", "bar", baz=True)
+        assert list(G.backend.all_edges_as_iterable()) == [("foo", "bar")]
 
     def test_edge_dne_raises(self, backend):
         backend, kwargs = backend
