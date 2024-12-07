@@ -19,7 +19,7 @@ setuptools.setup(
         "sql": ["SQLAlchemy>=1.3"],
         "dynamodb": ["boto3"],
         "igraph": ["igraph"],
-        "networkit": ["cmake", "cython", "networkit"],
+        "networkit": ["cmake", "cython", "networkit", "numpy<2.0.0"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
