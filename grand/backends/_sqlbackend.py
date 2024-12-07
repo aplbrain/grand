@@ -255,7 +255,7 @@ class SQLBackend(Backend):
                     self._node_table.c[self._primary_key] == str(u)
                 )
             ).fetchall()
-        )
+        ) > 0
 
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
         """
