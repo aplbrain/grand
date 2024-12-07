@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## **0.5.3** (December 7, 2024)
+
+-   Features:
+    -   Add `remove_node` method to SQLBackend (#58. thanks @davidmezzetti!)
+-   Bugfixes:
+    -   Modify sqlite backend `has_node` to return a bool vs int (#58. thanks @davidmezzetti!)
+    -   Update method parameters to conform to existing naming standards (#58. thanks @davidmezzetti!)
+
 ## **0.5.2** (June 4, 2024)
 
 -   Bugfixes:
