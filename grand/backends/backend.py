@@ -339,6 +339,7 @@ class InMemoryCachedBackend(CachedBackend):
         "add_edge",
         "add_edges_from",
         "ingest_from_edgelist_dataframe",
+        "remove_node"
     ]
 
     _default_write_methods = [
@@ -347,6 +348,7 @@ class InMemoryCachedBackend(CachedBackend):
         "add_edge",
         "add_edges_from",
         "ingest_from_edgelist_dataframe",
+        "remove_node"
     ]
 
     def __init__(

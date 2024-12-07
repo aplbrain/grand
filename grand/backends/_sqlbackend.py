@@ -350,16 +350,16 @@ class SQLBackend(Backend):
 
         """
 
-        res = (
-            self._connection.execute(
-                self._node_table.select().where(
-                    self._node_table.c[self._primary_key] == str(node_name)
-                )
+        res = self._connection.execute(
+            self._node_table.select().where(
+                self._node_table.c[self._primary_key] == str(node_name)
             )
-            .fetchone()
-            ._metadata
-        )
-        return res
+        ).fetchone()
+
+        if res:
+            return res._metadata
+
+        raise KeyError(f"Node {node_name} not found")
 
     def get_edge_by_id(self, u: Hashable, v: Hashable):
         """
