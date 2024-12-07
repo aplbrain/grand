@@ -1,11 +1,10 @@
-from typing import Hashable, Generator, Optional, Iterable
+from typing import Hashable, Generator
 import time
 
 import pandas as pd
 import sqlalchemy
-from sqlalchemy.pool import NullPool
-from sqlalchemy.sql import select
-from sqlalchemy import and_, or_, func, Index
+from sqlalchemy.sql import delete, select
+from sqlalchemy import or_, func, Index
 
 from .backend import Backend
 
@@ -191,6 +190,29 @@ class SQLBackend(Backend):
                 self._node_table.insert(),
                 parameters={self._primary_key: node_name, "_metadata": metadata},
             )
+
+    def remove_node(self, name: Hashable) -> None:
+        """
+        Removes nodes and related edges for name.
+
+        Args:
+            node_name (Hashable): id of the node
+        """
+
+        # Remove nodes
+        statement = delete(self._node_table).where(
+            self._node_table.c[self._primary_key] == str(name)
+        )
+        self._connection.execute(statement)
+
+        # Remove edges for node
+        statement = delete(self._edge_table).where(
+            or_(
+                self._edge_table.c[self._edge_source_key] == str(name),
+                self._edge_table.c[self._edge_target_key] == str(name)
+            )
+        )
+        self._connection.execute(statement)
 
     def all_nodes_as_iterable(self, include_metadata: bool = False) -> Generator:
         """

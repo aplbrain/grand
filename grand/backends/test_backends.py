@@ -151,6 +151,17 @@ class TestBackendPersistence:
         nodes = list(backend.all_nodes_as_iterable())
         # assert
         assert node0 in nodes
+
+        # test remove_node
+        backend = SQLBackend(db_url=url, directed=True)
+        node1, node2 = backend.add_node("A", {}), backend.add_node("B", {})
+        backend.add_edge(node1, node2, {})
+        assert backend.has_node(node1)
+        assert backend.has_edge(node1, node2)
+        backend.remove_node(node1)
+        assert not backend.has_node(node1)
+        assert not backend.has_edge(node1, node2)
+
         # cleanup
         os.remove(dbpath)
 
