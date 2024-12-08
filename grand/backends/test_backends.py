@@ -161,6 +161,8 @@ class TestBackendPersistence:
         backend.remove_node(node1)
         assert not backend.has_node(node1)
         assert not backend.has_edge(node1, node2)
+        with pytest.raises(KeyError):
+            assert not backend.get_node_by_id(node1)
 
         # cleanup
         os.remove(dbpath)
