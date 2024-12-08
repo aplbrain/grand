@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## **0.6.0** (December 8, 2024)
+
+-   Features:
+    -   Upgrade codspeed CI runner to v3
+-   Bugfixes:
+    -   Fix `get_node_by_id` method in `SQLBackend` (#59. thanks @davidmezzetti!)
+    -   Add `remove_node` to the `CachedBackend` (#59. thanks @davidmezzetti!)
+
 ## **0.5.3** (December 7, 2024)
 
 -   Features:
