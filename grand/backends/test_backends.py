@@ -1,5 +1,6 @@
 import pytest
 import os
+import pandas as pd
 
 import networkx as nx
 
@@ -448,3 +449,36 @@ def test_get_density_performance(backend):
     for i in range(1000 - 1):
         G.nx.add_edge(i, i + 1)
     assert nx.density(G.nx) <= 0.005
+
+
+class TestDataFrameBackend:
+
+    def test_can_create_empty(self):
+        b = DataFrameBackend()
+        assert b.get_edge_count() == 0
+        assert b.get_node_count() == 0
+
+        b.add_edge("A", "B", {})
+        assert b.get_edge_count() == 1
+        assert b.get_node_count() == 2
+
+    def test_can_create_from_int_dataframes(self):
+        # Create an edges DataFrame
+        edges = pd.DataFrame(
+            {
+                "source": [0, 1, 2, 3, 4],
+                "target": [1, 2, 3, 4, 0],
+                "weight": [1, 2, 3, 4, 5],
+            }
+        )
+
+        nodes = pd.DataFrame(
+            {
+                "name": [0, 1, 2, 3, 4],
+                "value": [1, 2, 3, 4, 5],
+            }
+        )
+
+        b = DataFrameBackend(edge_df=edges, node_df=nodes)
+        assert b.get_edge_count() == 5
+        assert b.get_node_count() == 5

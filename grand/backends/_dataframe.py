@@ -33,10 +33,12 @@ class DataFrameBackend(Backend):
                 use as the node ID
         """
         self._directed = directed
-        self._edge_df = edge_df or pd.DataFrame(
-            columns=[edge_df_source_column, edge_df_target_column]
+        self._edge_df = (
+            edge_df
+            if edge_df is not None
+            else pd.DataFrame(columns=[edge_df_source_column, edge_df_target_column])
         )
-        self._node_df = node_df or None
+        self._node_df = node_df if node_df is not None else None
         self._edge_df_source_column = edge_df_source_column
         self._edge_df_target_column = edge_df_target_column
         self._node_df_id_column = node_df_id_column
