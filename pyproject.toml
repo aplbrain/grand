@@ -3,7 +3,7 @@ name = "grand-graph"
 version = "0.6.0"
 description = "Graph database wrapper for non-graph datastores"
 authors = [{ name = "Jordan Matelsky", email = "opensource@matelsky.com" }]
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
     "cachetools>=5.5.2",
     "networkx>=2.4",
