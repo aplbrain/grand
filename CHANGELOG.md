@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## **0.7.0** (May 23, 2025)
+
+-   Housekeeping:
+    -   Upgrade from setup.py to pyproject.toml (#62, thanks @AdrianVollmer!)
+
 ## **0.6.0** (December 8, 2024)
 
 -   Features:

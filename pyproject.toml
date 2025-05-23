@@ -1,0 +1,52 @@
+[project]
+name = "grand-graph"
+version = "0.6.0"
+description = "Graph database wrapper for non-graph datastores"
+authors = [{ name = "Jordan Matelsky", email = "opensource@matelsky.com" }]
+requires-python = ">=3.10"
+dependencies = [
+    "cachetools>=5.5.2",
+    "networkx>=2.4",
+    "numpy>=1.26.4",
+    "pandas>=2.2.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "grand/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/grand",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["grand"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.5",
+    "ruff>=0.11.5",
+    "pytest-codspeed>=3.2.0",
+    "pytest-cov>=6.1.1",
+]
+
+[project.optional-dependencies]
+dynamodb = [
+    "boto3",
+]
+igraph = [
+    "igraph",
+]
+networkit = [
+    "cmake",
+    "cython",
+    "networkit",
+    "numpy<2.0.0",
+]
+sql = [
+    "SQLAlchemy>=1.3",
+]
