@@ -1,9 +1,11 @@
 # CHANGELOG
 
-## **0.7.0** (May 23, 2025)
+## **0.7.0** (May 25, 2025)
 
 -   Housekeeping:
     -   Upgrade from setup.py to pyproject.toml (#62, thanks @AdrianVollmer!)
+-   Bugfixes:
+    -   Fix NetworkX `degree` parity (#63)
 
 ## **0.6.0** (December 8, 2024)
 

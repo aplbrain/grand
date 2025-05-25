@@ -262,7 +262,12 @@ class Backend(abc.ABC):
             int: The degree of the node
 
         """
-        return len([i for i in self.get_node_neighbors(u)])
+        if self.is_directed():
+            # For directed graphs, degree = in_degree + out_degree
+            return self.in_degree(u) + self.out_degree(u)
+        else:
+            # For undirected graphs, count all neighbors
+            return len([i for i in self.get_node_neighbors(u)])
 
     def degrees(self, nbunch=None) -> Collection:
         return {
@@ -339,7 +344,7 @@ class InMemoryCachedBackend(CachedBackend):
         "add_edge",
         "add_edges_from",
         "ingest_from_edgelist_dataframe",
-        "remove_node"
+        "remove_node",
     ]
 
     _default_write_methods = [
@@ -348,7 +353,7 @@ class InMemoryCachedBackend(CachedBackend):
         "add_edge",
         "add_edges_from",
         "ingest_from_edgelist_dataframe",
-        "remove_node"
+        "remove_node",
     ]
 
     def __init__(
