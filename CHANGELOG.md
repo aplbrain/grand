@@ -5,7 +5,7 @@
 -   Housekeeping:
     -   Upgrade from setup.py to pyproject.toml (#62, thanks @AdrianVollmer!)
 -   Bugfixes:
-    -   Fix NetworkX `degree` parity (#63)
+    -   Fix NetworkX `degree` parity (#64)
 
 ## **0.6.0** (December 8, 2024)
 
