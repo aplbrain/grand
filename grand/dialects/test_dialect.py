@@ -2,6 +2,7 @@ import io
 import unittest
 
 from .. import Graph
+from ..backends import NetworkXBackend
 from . import (
     NetworkXDialect,
     IGraphDialect,
@@ -90,6 +91,36 @@ class TestNetworkXDialect(unittest.TestCase):
         self.assertEqual(dict(G.edges()), dict(H.edges()))
         self.assertEqual(list(G.edges["1", "2"]), list(H.edges["1", "2"]))
 
+    def test_degree_undirected(self):
+        G1 = Graph(backend=NetworkXBackend(directed=False))
+        G2 = nx.Graph()
+
+        G1.nx.add_node(0)
+        G1.nx.add_node(1)
+        G1.nx.add_edge(0, 1)
+
+        G2.add_node(0)
+        G2.add_node(1)
+        G2.add_edge(0, 1)
+
+        assert G1.nx.degree(0) == G2.degree(0), f"{G1.nx.degree(0)} != {G2.degree(0)}"
+        assert G1.nx.degree(1) == G2.degree(1), f"{G1.nx.degree(1)} != {G2.degree(1)}"
+
+    def test_degree_directed(self):
+        G1 = Graph(backend=NetworkXBackend(directed=True))
+        G2 = nx.DiGraph()
+
+        G1.nx.add_node(0)
+        G1.nx.add_node(1)
+        G1.nx.add_edge(0, 1)
+
+        G2.add_node(0)
+        G2.add_node(1)
+        G2.add_edge(0, 1)
+
+        assert G1.nx.degree(0) == G2.degree(0), f"{G1.nx.degree(0)} != {G2.degree(0)}"
+        assert G1.nx.degree(1) == G2.degree(1), f"{G1.nx.degree(1)} != {G2.degree(1)}"
+
     def test_nx_export(self):
         gg = Graph()
         f = io.BytesIO()
@@ -154,6 +185,9 @@ class TestNetworkitDialect(unittest.TestCase):
         assert G.networkit.degreeOut(u) == 1
         assert G.networkit.degreeIn(v) == 1
         assert G.networkit.degreeOut(v) == 0
+        # Test total degree for directed graphs
+        assert G.networkit.degree(u) == 1  # in_degree + out_degree = 0 + 1 = 1
+        assert G.networkit.degree(v) == 1  # in_degree + out_degree = 1 + 0 = 1
         assert G.networkit.numberOfEdges() == 1
 
     def test_undirected_density(self):

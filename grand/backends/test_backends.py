@@ -395,7 +395,11 @@ class TestBackend:
         G = Graph(backend=backend(directed=True, **kwargs))
         G.nx.add_edge("foo", "bar", baz=True)
         assert G.nx.degree("foo") == 1
-        assert G.nx.degree("bar") == 0
+        assert G.nx.degree("bar") == 1
+        assert G.nx.in_degree("bar") == 1
+        assert G.nx.out_degree("bar") == 0
+        assert G.nx.in_degree("foo") == 0
+        assert G.nx.out_degree("foo") == 1
 
     def test_undirected_degree_multiple(self, backend):
         backend, kwargs = backend
@@ -412,8 +416,8 @@ class TestBackend:
         G.nx.add_edge("foo", "bar", baz=True)
         G.nx.add_edge("foo", "baz", baz=True)
         assert G.nx.degree("foo") == 2
-        assert G.nx.degree("bar") == 0
-        assert G.nx.degree("baz") == 0
+        assert G.nx.degree("bar") == 1
+        assert G.nx.degree("baz") == 1
         assert G.nx.out_degree("foo") == 2
         assert G.nx.out_degree("bar") == 0
         assert G.nx.out_degree("baz") == 0
@@ -452,7 +456,6 @@ def test_get_density_performance(backend):
 
 
 class TestDataFrameBackend:
-
     def test_can_create_empty(self):
         b = DataFrameBackend()
         assert b.get_edge_count() == 0

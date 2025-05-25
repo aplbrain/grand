@@ -12,7 +12,6 @@ from networkx.classes.coreviews import AdjacencyView, AtlasView
 
 
 class _GrandAdjacencyView(AdjacencyView):
-
     __slots__ = ("_parent", "_pred_or_succ")  # Still uses AtlasView slots names _atlas
 
     def __init__(self, parent_nx_dialect: "NetworkXDialect", pred_or_succ: str):
@@ -176,6 +175,52 @@ class NetworkXDialect(nx.Graph):
 
     def out_degree(self, nbunch=None):
         return self.parent.backend.out_degrees(nbunch)
+
+    def degree(self, nbunch=None):
+        if self.parent.backend.is_directed():
+            # For directed graphs, degree = in_degree + out_degree
+            if nbunch is None:
+                # Return DegreeView-like object for all nodes
+                from networkx.classes.reportviews import DegreeView
+
+                combined_degrees = {}
+                for node in self.parent.backend.all_nodes_as_iterable():
+                    in_deg = self.parent.backend.in_degree(node)
+                    out_deg = self.parent.backend.out_degree(node)
+                    combined_degrees[node] = in_deg + out_deg
+                return DegreeView(combined_degrees)
+            elif hasattr(nbunch, "__iter__") and not isinstance(nbunch, str):
+                # nbunch is a list/iterable of nodes
+                from networkx.classes.reportviews import DegreeView
+
+                result = {}
+                for node in nbunch:
+                    in_deg = self.parent.backend.in_degree(node)
+                    out_deg = self.parent.backend.out_degree(node)
+                    result[node] = in_deg + out_deg
+                return DegreeView(result)
+            else:
+                # nbunch is a single node
+                in_deg = self.parent.backend.in_degree(nbunch)
+                out_deg = self.parent.backend.out_degree(nbunch)
+                return in_deg + out_deg
+        else:
+            # For undirected graphs, use the backend's degree method directly
+            if nbunch is None:
+                # Return DegreeView for all nodes
+                from networkx.classes.reportviews import DegreeView
+
+                degrees_dict = self.parent.backend.degrees(nbunch)
+                return DegreeView(degrees_dict)
+            elif hasattr(nbunch, "__iter__") and not isinstance(nbunch, str):
+                # nbunch is a list/iterable of nodes
+                from networkx.classes.reportviews import DegreeView
+
+                degrees_dict = self.parent.backend.degrees(nbunch)
+                return DegreeView(degrees_dict)
+            else:
+                # nbunch is a single node
+                return self.parent.backend.degree(nbunch)
 
     def is_directed(self):
         return self.parent.backend.is_directed()
