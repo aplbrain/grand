@@ -121,6 +121,18 @@ class TestNetworkXDialect(unittest.TestCase):
         assert G1.nx.degree(0) == G2.degree(0), f"{G1.nx.degree(0)} != {G2.degree(0)}"
         assert G1.nx.degree(1) == G2.degree(1), f"{G1.nx.degree(1)} != {G2.degree(1)}"
 
+    def test_degree_directed_iterable(self):
+        G1 = Graph(backend=NetworkXBackend(directed=True))
+        G2 = nx.DiGraph()
+
+        G1.nx.add_edge(0, 1)
+        G1.nx.add_edge(0, 2)
+        G2.add_edge(0, 1)
+        G2.add_edge(0, 2)
+
+        self.assertEqual(dict(G1.nx.degree()), dict(G2.degree()))
+        self.assertEqual(dict(G1.nx.degree([0, 2])), dict(G2.degree([0, 2])))
+
     def test_nx_export(self):
         gg = Graph()
         f = io.BytesIO()

@@ -177,50 +177,34 @@ class NetworkXDialect(nx.Graph):
         return self.parent.backend.out_degrees(nbunch)
 
     def degree(self, nbunch=None):
-        if self.parent.backend.is_directed():
-            # For directed graphs, degree = in_degree + out_degree
-            if nbunch is None:
-                # Return DegreeView-like object for all nodes
-                from networkx.classes.reportviews import DegreeView
-
-                combined_degrees = {}
-                for node in self.parent.backend.all_nodes_as_iterable():
-                    in_deg = self.parent.backend.in_degree(node)
-                    out_deg = self.parent.backend.out_degree(node)
-                    combined_degrees[node] = in_deg + out_deg
-                return DegreeView(combined_degrees)
-            elif hasattr(nbunch, "__iter__") and not isinstance(nbunch, str):
-                # nbunch is a list/iterable of nodes
-                from networkx.classes.reportviews import DegreeView
-
-                result = {}
-                for node in nbunch:
-                    in_deg = self.parent.backend.in_degree(node)
-                    out_deg = self.parent.backend.out_degree(node)
-                    result[node] = in_deg + out_deg
-                return DegreeView(result)
-            else:
-                # nbunch is a single node
+        if nbunch is None:
+            nodes = list(self.parent.backend.all_nodes_as_iterable())
+        elif hasattr(nbunch, "__iter__") and not isinstance(nbunch, str):
+            nodes = list(nbunch)
+        else:
+            if self.parent.backend.is_directed():
                 in_deg = self.parent.backend.in_degree(nbunch)
                 out_deg = self.parent.backend.out_degree(nbunch)
                 return in_deg + out_deg
-        else:
-            # For undirected graphs, use the backend's degree method directly
-            if nbunch is None:
-                # Return DegreeView for all nodes
-                from networkx.classes.reportviews import DegreeView
+            return self.parent.backend.degree(nbunch)
 
-                degrees_dict = self.parent.backend.degrees(nbunch)
-                return DegreeView(degrees_dict)
-            elif hasattr(nbunch, "__iter__") and not isinstance(nbunch, str):
-                # nbunch is a list/iterable of nodes
-                from networkx.classes.reportviews import DegreeView
+        if not nodes:
+            return {}
 
-                degrees_dict = self.parent.backend.degrees(nbunch)
-                return DegreeView(degrees_dict)
-            else:
-                # nbunch is a single node
-                return self.parent.backend.degree(nbunch)
+        if self.parent.backend.is_directed():
+            in_degrees = self.parent.backend.in_degrees(nodes)
+            out_degrees = self.parent.backend.out_degrees(nodes)
+
+            def _lookup_degree(degrees: dict, node: Hashable) -> int:
+                return degrees.get(node, degrees.get(str(node), 0))
+
+            return {
+                node: _lookup_degree(in_degrees, node)
+                + _lookup_degree(out_degrees, node)
+                for node in nodes
+            }
+
+        return self.parent.backend.degrees(nodes)
 
     def is_directed(self):
         return self.parent.backend.is_directed()
