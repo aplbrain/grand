@@ -455,6 +455,49 @@ def test_get_density_performance(backend):
     assert nx.density(G.nx) <= 0.005
 
 
+@pytest.mark.benchmark
+def test_networkx_ingest_performance():
+    backend = NetworkXBackend(directed=True)
+    edgelist = pd.DataFrame(
+        {
+            "source": range(1000),
+            "target": range(1, 1001),
+            "weight": range(1000),
+            "kind": ["edge"] * 1000,
+        }
+    )
+
+    result = backend.ingest_from_edgelist_dataframe(edgelist, "source", "target")
+
+    assert result["node_count"] == 1001
+    assert result["edge_count"] == 1000
+    assert backend.get_node_count() == 1001
+    assert backend.get_edge_count() == 1000
+
+
+@pytest.mark.benchmark
+def test_sql_ingest_performance():
+    if not _CAN_IMPORT_SQL:
+        pytest.skip("sqlalchemy is not installed.")
+
+    backend = SQLBackend(directed=True, db_url="sqlite:///:memory:")
+    edgelist = pd.DataFrame(
+        {
+            "source": range(1000),
+            "target": range(1, 1001),
+            "weight": range(1000),
+            "kind": ["edge"] * 1000,
+        }
+    )
+
+    result = backend.ingest_from_edgelist_dataframe(edgelist, "source", "target")
+
+    assert result["node_count"] == 1001
+    assert result["edge_count"] == 1000
+    assert backend.get_node_count() == 1001
+    assert backend.get_edge_count() == 1000
+
+
 class TestDataFrameBackend:
     def test_can_create_empty(self):
         b = DataFrameBackend()
