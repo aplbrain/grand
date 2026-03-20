@@ -190,22 +190,25 @@ class NetworkXBackend(Backend):
         """
 
         tic = time.time()
-        self._nx_graph.add_edges_from(
-            [
-                (
-                    e[source_column],
-                    e[target_column],
-                    {
-                        k: v
-                        for k, v in dict(e).items()
-                        if k not in [source_column, target_column]
-                    },
-                )
-                for _, e in edgelist.iterrows()
-            ]
-        )
+        edge_columns = [
+            c for c in edgelist.columns if c not in [source_column, target_column]
+        ]
+        sources = edgelist[source_column].tolist()
+        targets = edgelist[target_column].tolist()
 
-        nodes = edgelist[source_column].append(edgelist[target_column]).unique()
+        if edge_columns:
+            self._nx_graph.add_edges_from(
+                zip(sources, targets, edgelist[edge_columns].to_dict("records"))
+            )
+        else:
+            self._nx_graph.add_edges_from(zip(sources, targets))
+
+        nodes = pd.unique(
+            pd.concat(
+                [edgelist[source_column], edgelist[target_column]],
+                ignore_index=True,
+            )
+        )
 
         return {
             "node_count": len(nodes),

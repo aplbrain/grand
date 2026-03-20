@@ -455,6 +455,49 @@ def test_get_density_performance(backend):
     assert nx.density(G.nx) <= 0.005
 
 
+@pytest.mark.benchmark
+def test_networkx_ingest_performance():
+    backend = NetworkXBackend(directed=True)
+    edgelist = pd.DataFrame(
+        {
+            "source": range(1000),
+            "target": range(1, 1001),
+            "weight": range(1000),
+            "kind": ["edge"] * 1000,
+        }
+    )
+
+    result = backend.ingest_from_edgelist_dataframe(edgelist, "source", "target")
+
+    assert result["node_count"] == 1001
+    assert result["edge_count"] == 1000
+    assert backend.get_node_count() == 1001
+    assert backend.get_edge_count() == 1000
+
+
+@pytest.mark.benchmark
+def test_sql_ingest_performance():
+    if not _CAN_IMPORT_SQL:
+        pytest.skip("sqlalchemy is not installed.")
+
+    backend = SQLBackend(directed=True, db_url="sqlite:///:memory:")
+    edgelist = pd.DataFrame(
+        {
+            "source": range(1000),
+            "target": range(1, 1001),
+            "weight": range(1000),
+            "kind": ["edge"] * 1000,
+        }
+    )
+
+    result = backend.ingest_from_edgelist_dataframe(edgelist, "source", "target")
+
+    assert result["node_count"] == 1001
+    assert result["edge_count"] == 1000
+    assert backend.get_node_count() == 1001
+    assert backend.get_edge_count() == 1000
+
+
 class TestDataFrameBackend:
     def test_can_create_empty(self):
         b = DataFrameBackend()
@@ -485,3 +528,46 @@ class TestDataFrameBackend:
         b = DataFrameBackend(edge_df=edges, node_df=nodes)
         assert b.get_edge_count() == 5
         assert b.get_node_count() == 5
+
+
+def test_networkx_can_ingest_edgelist_dataframe():
+    backend = NetworkXBackend(directed=True)
+    edgelist = pd.DataFrame(
+        {
+            "source": ["A", "B"],
+            "target": ["B", "C"],
+            "weight": [1, 2],
+        }
+    )
+
+    result = backend.ingest_from_edgelist_dataframe(edgelist, "source", "target")
+
+    assert result["node_count"] == 3
+    assert result["edge_count"] == 2
+    assert backend.get_node_count() == 3
+    assert backend.get_edge_count() == 2
+    assert backend.get_edge_by_id("A", "B")["weight"] == 1
+    assert backend.get_edge_by_id("B", "C")["weight"] == 2
+
+
+def test_sql_can_ingest_edgelist_dataframe():
+    if not _CAN_IMPORT_SQL:
+        pytest.skip("sqlalchemy is not installed.")
+
+    backend = SQLBackend(directed=True, db_url="sqlite:///:memory:")
+    edgelist = pd.DataFrame(
+        {
+            "source": ["A", "B"],
+            "target": ["B", "C"],
+            "weight": [1, 2],
+        }
+    )
+
+    result = backend.ingest_from_edgelist_dataframe(edgelist, "source", "target")
+
+    assert result["node_count"] == 3
+    assert result["edge_count"] == 2
+    assert backend.get_node_count() == 3
+    assert backend.get_edge_count() == 2
+    assert backend.get_edge_by_id("A", "B")["weight"] == 1
+    assert backend.get_edge_by_id("B", "C")["weight"] == 2
