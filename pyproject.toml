@@ -37,3 +37,6 @@ dynamodb = ["boto3"]
 igraph = ["igraph"]
 networkit = ["cmake", "cython", "networkit", "numpy<2.0.0"]
 sql = ["SQLAlchemy>=1.3"]
+
+[tool.pytest.ini_options]
+markers = ["benchmark: performance-oriented tests"]

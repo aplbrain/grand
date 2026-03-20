@@ -154,6 +154,32 @@ class SQLBackend(Backend):
             )
         return node_name
 
+    def _insert_empty_node_if_missing(self, node_name: Hashable) -> None:
+        node_name = str(node_name)
+        insert_statement = self._node_table.insert()
+
+        # Use dialect-native "ignore duplicate key" behavior when available to
+        # avoid the extra existence query on every edge insertion.
+        if self._engine.dialect.name == "sqlite":
+            self._connection.execute(
+                insert_statement.prefix_with("OR IGNORE"),
+                parameters={self._primary_key: node_name, "_metadata": {}},
+            )
+            return
+
+        if self._engine.dialect.name in {"mysql", "mariadb"}:
+            self._connection.execute(
+                insert_statement.prefix_with("IGNORE"),
+                parameters={self._primary_key: node_name, "_metadata": {}},
+            )
+            return
+
+        if not self.has_node(node_name):
+            self._connection.execute(
+                insert_statement,
+                parameters={self._primary_key: node_name, "_metadata": {}},
+            )
+
     def add_nodes_from(self, nodes_for_adding, **attr):
         nodes = [
             {
@@ -249,13 +275,14 @@ class SQLBackend(Backend):
         Returns:
             bool: True if the node exists
         """
-        return len(
+        return (
             self._connection.execute(
-                self._node_table.select().where(
+                select(self._node_table.c[self._primary_key]).where(
                     self._node_table.c[self._primary_key] == str(u)
                 )
-            ).fetchall()
-        ) > 0
+            ).fetchone()
+            is not None
+        )
 
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
         """
@@ -275,10 +302,8 @@ class SQLBackend(Backend):
         """
         pk = f"__{u}__{v}"
 
-        if not self.has_node(u):
-            self.add_node(u, {})
-        if not self.has_node(v):
-            self.add_node(v, {})
+        self._insert_empty_node_if_missing(u)
+        self._insert_empty_node_if_missing(v)
 
         try:
             self._connection.execute(
