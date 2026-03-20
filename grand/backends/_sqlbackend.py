@@ -650,7 +650,7 @@ class SQLBackend(Backend):
 
     def ingest_from_edgelist_dataframe(
         self, edgelist: pd.DataFrame, source_column: str, target_column: str
-    ) -> None:
+    ) -> dict:
         """
         Ingest an edgelist from a Pandas DataFrame.
 
@@ -658,59 +658,60 @@ class SQLBackend(Backend):
         # Produce edge list:
 
         edge_tic = time.time()
-        newlist = edgelist.rename(
-            columns={
-                source_column: self._edge_source_key,
-                target_column: self._edge_target_key,
+        edge_columns = [
+            c for c in edgelist.columns if c not in [source_column, target_column]
+        ]
+        sources = [str(value) for value in edgelist[source_column].tolist()]
+        targets = [str(value) for value in edgelist[target_column].tolist()]
+        edge_metadata = (
+            edgelist[edge_columns].to_dict("records")
+            if edge_columns
+            else [{} for _ in range(len(edgelist))]
+        )
+
+        edge_rows = [
+            {
+                self._edge_source_key: source,
+                self._edge_target_key: target,
+                self._primary_key: f"__{source}__{target}",
+                "_metadata": metadata,
             }
-        )
+            for source, target, metadata in zip(sources, targets, edge_metadata)
+        ]
 
-        newlist[self._primary_key] = edgelist.apply(
-            lambda x: f"__{x[source_column]}__{x[target_column]}", axis="columns"
-        )
-        newlist["_metadata"] = edgelist.apply(
-            lambda x: {
-                k: v for k, v in x.items() if k not in [source_column, target_column]
-            },
-            axis="columns",
-        )
-
-        newlist[
-            [
-                self._edge_source_key,
-                self._edge_target_key,
-                self._primary_key,
-                "_metadata",
-            ]
-        ].to_sql(
-            self._edge_table_name,
-            self._engine,
-            index=False,
-            if_exists="append",
-            dtype={"_metadata": sqlalchemy.JSON},
-        )
+        if edge_rows:
+            self._connection.execute(self._edge_table.insert(), edge_rows)
 
         edge_toc = time.time() - edge_tic
 
         # now ingest nodes:
         node_tic = time.time()
-        nodes = edgelist[source_column].append(edgelist[target_column]).unique()
-        pd.DataFrame(
-            [
-                {
-                    self._primary_key: node,
-                    # no metadata:
-                    "_metadata": {},
-                }
-                for node in nodes
-            ]
-        ).to_sql(
-            self._node_table_name,
-            self._engine,
-            index=False,
-            if_exists="replace",
-            dtype={"_metadata": sqlalchemy.JSON},
+        nodes = pd.unique(
+            pd.concat(
+                [edgelist[source_column], edgelist[target_column]],
+                ignore_index=True,
+            )
         )
+
+        node_rows = [
+            {
+                self._primary_key: str(node),
+                "_metadata": {},
+            }
+            for node in nodes
+        ]
+
+        if node_rows:
+            node_insert = self._node_table.insert()
+            if self._engine.dialect.name == "sqlite":
+                node_insert = node_insert.prefix_with("OR IGNORE")
+                self._connection.execute(node_insert, node_rows)
+            elif self._engine.dialect.name in {"mysql", "mariadb"}:
+                node_insert = node_insert.prefix_with("IGNORE")
+                self._connection.execute(node_insert, node_rows)
+            else:
+                for node in nodes:
+                    self._insert_empty_node_if_missing(node)
 
         return {
             "node_count": len(nodes),
