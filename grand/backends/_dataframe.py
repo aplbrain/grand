@@ -43,6 +43,30 @@ class DataFrameBackend(Backend):
         self._edge_df_target_column = edge_df_target_column
         self._node_df_id_column = node_df_id_column
 
+    def _node_row_dataframe(self, node_name: Hashable, metadata: dict) -> pd.DataFrame:
+        metadata = metadata or {}
+        row = pd.DataFrame(
+            [
+                {
+                    self._node_df_id_column: node_name,
+                    **metadata,
+                }
+            ]
+        )
+        return row.set_index(self._node_df_id_column)
+
+    def _edge_row_dataframe(self, u: Hashable, v: Hashable, metadata: dict) -> pd.DataFrame:
+        metadata = metadata or {}
+        return pd.DataFrame(
+            [
+                {
+                    self._edge_df_source_column: u,
+                    self._edge_df_target_column: v,
+                    **metadata,
+                }
+            ]
+        )
+
     def is_directed(self) -> bool:
         """
         Return True if the backend graph is directed.
@@ -80,19 +104,7 @@ class DataFrameBackend(Backend):
 
         # Add a new row to the nodes table:
         if self._node_df is None:
-            self._node_df = pd.DataFrame(
-                [
-                    {
-                        self._node_df_id_column: node_name,
-                        **metadata,
-                    }
-                ],
-                columns=[
-                    self._node_df_id_column,
-                    *metadata.keys(),
-                ],
-            )
-            self._node_df.set_index(self._node_df_id_column, inplace=True)
+            self._node_df = self._node_row_dataframe(node_name, metadata)
         else:
             if self.has_node(node_name):
                 existing_metadata = self.get_node_by_id(node_name)
@@ -102,7 +114,8 @@ class DataFrameBackend(Backend):
             else:
                 # Insert a new row:
                 self._node_df = pd.concat(
-                    [self._node_df, pd.DataFrame([{node_name: metadata}]).T]
+                    [self._node_df, self._node_row_dataframe(node_name, metadata)],
+                    sort=False,
                 )
 
         return node_name
@@ -202,14 +215,11 @@ class DataFrameBackend(Backend):
                         k,
                     ] = m
         else:
-            row = {
-                self._edge_df_source_column: u,
-                self._edge_df_target_column: v,
-                **metadata,
-            }
-            self._edge_df.loc[len(self._edge_df)] = None
-            for k, m in row.items():
-                self._edge_df.loc[len(self._edge_df) - 1, k] = m
+            self._edge_df = pd.concat(
+                [self._edge_df, self._edge_row_dataframe(u, v, metadata)],
+                ignore_index=True,
+                sort=False,
+            )
         return (u, v)
 
     def _has_edge(self, u: Hashable, v: Hashable) -> bool:
