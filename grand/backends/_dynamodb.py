@@ -207,11 +207,10 @@ class DynamoDBBackend(Backend):
         Returns:
             bool: True if the node exists
         """
-        try:
-            self._node_table.get_item(u)
-            return True
-        except:
-            return False
+        response = self._node_table.get_item(
+            Key={self._primary_key: str(u)},
+        )
+        return "Item" in response
 
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
         """
