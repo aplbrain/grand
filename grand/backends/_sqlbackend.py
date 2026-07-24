@@ -337,6 +337,18 @@ class SQLBackend(Backend):
             self._insert_empty_node_if_missing(u)
             self._insert_empty_node_if_missing(v)
 
+            if self._transaction_depth:
+                self._connection.execute(
+                    self._edge_table.insert(),
+                    parameters={
+                        self._primary_key: pk,
+                        self._edge_source_key: u,
+                        self._edge_target_key: v,
+                        "_metadata": metadata,
+                    },
+                )
+                return pk
+
             try:
                 with self._connection.begin_nested():
                     self._connection.execute(
