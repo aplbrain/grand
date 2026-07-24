@@ -37,6 +37,11 @@ except ImportError:
 from .. import Graph
 
 
+def xfail_backend(backend, backend_type, reason):
+    if backend is backend_type:
+        pytest.xfail(reason)
+
+
 backend_test_params = [
     pytest.param(
         (NetworkXBackend, {}),
@@ -46,8 +51,6 @@ backend_test_params = [
         ),
         id="NetworkXBackend",
     ),
-]
-backend_test_params = [
     pytest.param(
         (DataFrameBackend, {}),
         marks=pytest.mark.skipif(
@@ -63,8 +66,8 @@ if _CAN_IMPORT_DYNAMODB:
         pytest.param(
             (DynamoDBBackend, {}),
             marks=pytest.mark.skipif(
-                os.environ.get("TEST_DYNAMODB", default="1") != "1",
-                reason="DynamoDB Backend skipped because $TEST_DYNAMODB != 0 or boto3 is not installed",
+                os.environ.get("TEST_DYNAMODB", default="0") != "1",
+                reason="DynamoDB Backend requires an explicitly configured local or mocked service.",
             ),
             id="DynamoDBBackend",
         ),
@@ -103,35 +106,6 @@ if _CAN_IMPORT_NETWORKIT:
             id="NetworkitBackend",
         ),
     )
-
-if os.environ.get("TEST_NETWORKITBACKEND") == "1":
-    from ._networkit import NetworkitBackend
-
-    backend_test_params.append(
-        pytest.param(
-            (NetworkitBackend, {}),
-            marks=pytest.mark.skipif(
-                os.environ.get("TEST_NETWORKITBACKEND") != "1",
-                reason="Networkit Backend skipped because $TEST_NETWORKITBACKEND != 1.",
-            ),
-            id="NetworkitBackend",
-        ),
-    )
-
-if os.environ.get("TEST_IGRAPHBACKEND") == "1":
-    from ._igraph import IGraphBackend
-
-    backend_test_params.append(
-        pytest.param(
-            (IGraphBackend, {}),
-            marks=pytest.mark.skipif(
-                os.environ.get("TEST_IGRAPHBACKEND") != "1",
-                reason="Networkit Backend skipped because $TEST_IGRAPHBACKEND != 1.",
-            ),
-            id="IGraphBackend",
-        ),
-    )
-
 
 # @pytest.mark.parametrize("backend", backend_test_params)
 class TestBackendPersistence:
@@ -203,6 +177,19 @@ class TestBackend:
         assert G.nx.nodes["A"]["x"] == 4
         assert G.nx.nodes["A"]["z"] == 3
 
+    def test_missing_node_raises(self, backend):
+        backend, kwargs = backend
+        xfail_backend(
+            backend,
+            DataFrameBackend,
+            "APL #76: edge-only missing nodes return metadata",
+        )
+        b = backend(**kwargs)
+
+        assert not b.has_node("missing")
+        with pytest.raises((KeyError, IndexError)):
+            b.get_node_by_id("missing")
+
     def test_can_add_edge(self, backend):
         backend, kwargs = backend
         G = Graph(backend=backend(**kwargs))
@@ -223,6 +210,21 @@ class TestBackend:
         assert G.nx.get_edge_data("A", "B")["x"] == 4
         assert G.nx.get_edge_data("A", "B")["z"] == 3
         assert len(G.nx.nodes()) == 2
+
+    def test_missing_edge_raises(self, backend):
+        backend, kwargs = backend
+        xfail_backend(backend, DataFrameBackend, "APL #76: missing edges do not raise")
+        if _CAN_IMPORT_NETWORKIT:
+            xfail_backend(
+                backend,
+                NetworkitBackend,
+                "Networkit has_edge raises when endpoints are missing",
+            )
+        b = backend(**kwargs)
+
+        assert not b.has_edge("missing", "edge")
+        with pytest.raises((KeyError, IndexError)):
+            b.get_edge_by_id("missing", "edge")
 
     def test_can_get_node(self, backend):
         backend, kwargs = backend
@@ -315,6 +317,36 @@ class TestBackend:
         nxG.add_edge("B", "D", **md)
         assert dict(nx.bfs_successors(G.nx, "A")) == dict(nx.bfs_successors(nxG, "A"))
         assert dict(nx.bfs_successors(G.nx, "C")) == dict(nx.bfs_successors(nxG, "C"))
+
+    def test_directed_predecessors_and_successors(self, backend):
+        backend, kwargs = backend
+        b = backend(directed=True, **kwargs)
+        b.add_edge("A", "B", {"weight": 1})
+        b.add_edge("C", "B", {"weight": 2})
+
+        assert set(b.get_node_predecessors("B")) == {"A", "C"}
+        assert set(b.get_node_successors("A")) == {"B"}
+
+    def test_undirected_predecessors_match_neighbors(self, backend):
+        backend, kwargs = backend
+        if _CAN_IMPORT_NETWORKIT and backend is NetworkitBackend:
+            pytest.skip("Networkit undirected predecessors can crash in native code")
+        xfail_backend(
+            backend,
+            NetworkXBackend,
+            "NetworkX undirected predecessor support is not implemented",
+        )
+        xfail_backend(
+            backend,
+            DataFrameBackend,
+            "APL #77: undirected predecessors return self",
+        )
+        b = backend(directed=False, **kwargs)
+        b.add_edge("A", "B", {"weight": 1})
+
+        assert set(b.get_node_predecessors("A")) == {"B"}
+        assert set(b.get_node_predecessors("B")) == {"A"}
+        assert set(b.get_node_neighbors("A")) == {"B"}
 
     def test_subgraph_isomorphism_undirected(self, backend):
         backend, kwargs = backend
