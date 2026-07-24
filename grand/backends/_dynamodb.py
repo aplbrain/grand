@@ -9,6 +9,10 @@ from .backend import Backend
 
 
 _DEFAULT_DYNAMODB_URL = "http://localhost:4566"
+_EDGE_SOURCE_INDEX = "grand_Source"
+_EDGE_TARGET_INDEX = "grand_Target"
+
+
 def _dynamo_table_exists(table_name: str, client: boto3.client):
     """
     Check to see if the DynamoDB table already exists.
@@ -26,21 +30,39 @@ def _create_dynamo_table(
     primary_key: str,
     client,
     read_write_units: Optional[int] = None,
+    index_keys: tuple[str, ...] = (),
 ):
     if read_write_units is not None:
         raise NotImplementedError("Non-on-demand billing is not currently supported.")
 
-    return client.create_table(
-        TableName=table_name,
-        KeySchema=[
-            {"AttributeName": primary_key, "KeyType": "HASH"},  # Partition key
-            # {"AttributeName": "title", "KeyType": "RANGE"},  # Sort key
+    table_kwargs = {
+        "TableName": table_name,
+        "KeySchema": [
+            {"AttributeName": primary_key, "KeyType": "HASH"},
         ],
-        AttributeDefinitions=[
+        "AttributeDefinitions": [
             {"AttributeName": primary_key, "AttributeType": "S"},
-            # {"AttributeName": "title", "AttributeType": "S"},
+            *[
+                {"AttributeName": index_key, "AttributeType": "S"}
+                for index_key in index_keys
+            ],
         ],
-        BillingMode="PAY_PER_REQUEST",
+        "BillingMode": "PAY_PER_REQUEST",
+    }
+    if index_keys:
+        table_kwargs["GlobalSecondaryIndexes"] = [
+            {
+                "IndexName": index_name,
+                "KeySchema": [{"AttributeName": index_key, "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+            }
+            for index_name, index_key in zip(
+                (_EDGE_SOURCE_INDEX, _EDGE_TARGET_INDEX), index_keys
+            )
+        ]
+
+    return client.create_table(
+        **table_kwargs,
     )
 
 
@@ -107,7 +129,10 @@ class DynamoDBBackend(Backend):
 
         if not _dynamo_table_exists(self._edge_table_name, self._client):
             edge_creation_response = _create_dynamo_table(
-                self._edge_table_name, self._primary_key, self._resource
+                self._edge_table_name,
+                self._primary_key,
+                self._resource,
+                index_keys=(self._edge_source_key, self._edge_target_key),
             )
             # Await table creation:
             if edge_creation_response:
@@ -173,6 +198,28 @@ class DynamoDBBackend(Backend):
             done = start_key is None
         return results
 
+    def _query_edges(self, index_name: str, key: str, value: Hashable):
+        results = []
+        query_kwargs = {
+            "IndexName": index_name,
+            "KeyConditionExpression": Key(key).eq(str(value)),
+        }
+        while True:
+            response = self._edge_table.query(**query_kwargs)
+            results.extend(response.get("Items", []))
+            start_key = response.get("LastEvaluatedKey")
+            if start_key is None:
+                return results
+            query_kwargs["ExclusiveStartKey"] = start_key
+
+    def _incident_edges(self, u: Hashable):
+        outgoing = self._query_edges(_EDGE_SOURCE_INDEX, self._edge_source_key, u)
+        incoming = self._query_edges(_EDGE_TARGET_INDEX, self._edge_target_key, u)
+        return {
+            edge[self._primary_key]: edge
+            for edge in [*outgoing, *incoming]
+        }.values()
+
     def all_nodes_as_iterable(self, include_metadata: bool = False) -> Collection:
         """
         Get a generator of all of the nodes in this graph.
@@ -233,17 +280,17 @@ class DynamoDBBackend(Backend):
             raise KeyError(
                 f"'{self._edge_source_key}' should not be in metadata. I need that for PK!"
             )
-        metadata[self._edge_source_key] = u
+        metadata[self._edge_source_key] = str(u)
         if self._edge_target_key in metadata:
             raise KeyError(
                 f"'{self._edge_target_key}' should not be in metadata. I need that for PK!"
             )
-        metadata[self._edge_target_key] = v
+        metadata[self._edge_target_key] = str(v)
 
         if not self.has_node(u):
-            self._node_table.put_item(Item={self._primary_key: u})
+            self._node_table.put_item(Item={self._primary_key: str(u)})
         if not self.has_node(v):
-            self._node_table.put_item(Item={self._primary_key: v})
+            self._node_table.put_item(Item={self._primary_key: str(v)})
 
         response = self._edge_table.put_item(Item=metadata)
 
@@ -318,25 +365,16 @@ class DynamoDBBackend(Backend):
             Generator
 
         """
+        u = str(u)
         if self._directed:
-            # Return only edges for which `u` is the source
-            res = self._scan_table(
-                self._edge_table,
-                {
-                    "FilterExpression": Key(self._primary_key).begins_with(f"__{u}__"),
-                },
+            res = self._query_edges(
+                _EDGE_SOURCE_INDEX,
+                self._edge_source_key,
+                u,
             )
 
         else:
-            res = self._scan_table(
-                self._edge_table,
-                {
-                    "FilterExpression": (
-                        Key(self._edge_source_key).eq(u)
-                        | Key(self._edge_target_key).eq(u)
-                    ),
-                },
-            )
+            res = self._incident_edges(u)
 
         if include_metadata:
             results = {}
@@ -375,25 +413,16 @@ class DynamoDBBackend(Backend):
             Generator
 
         """
+        u = str(u)
         if self._directed:
-            # Return only edges for which `u` is the target
-            res = self._scan_table(
-                self._edge_table,
-                {
-                    "FilterExpression": Key(self._edge_target_key).eq(u),
-                },
+            res = self._query_edges(
+                _EDGE_TARGET_INDEX,
+                self._edge_target_key,
+                u,
             )
 
         else:
-            res = self._scan_table(
-                self._edge_table,
-                {
-                    "FilterExpression": (
-                        Key(self._edge_source_key).eq(u)
-                        | Key(self._edge_target_key).eq(u)
-                    ),
-                },
-            )
+            res = self._incident_edges(u)
 
         if include_metadata:
             results = {}
@@ -477,8 +506,8 @@ class DynamoDBBackend(Backend):
                 batch_writer.put_item(
                     Item={
                         self._primary_key: f"__{source}__{target}",
-                        self._edge_source_key: source,
-                        self._edge_target_key: target,
+                        self._edge_source_key: str(source),
+                        self._edge_target_key: str(target),
                         **metadata,
                     }
                 )
