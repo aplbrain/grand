@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from typing import Hashable, Generator
 import time
 
@@ -57,6 +58,7 @@ class SQLBackend(Backend):
         sqlalchemy_kwargs = sqlalchemy_kwargs or {}
         self._engine = sqlalchemy.create_engine(db_url, **sqlalchemy_kwargs)
         self._connection = self._engine.connect()
+        self._transaction_depth = 0
         self._metadata = sqlalchemy.MetaData()
 
         # Create nodes table
@@ -102,6 +104,34 @@ class SQLBackend(Backend):
         tindex = Index("edge_target", target_column)
         tindex.create(self._engine, checkfirst=True)
 
+    @contextmanager
+    def _mutation(self):
+        if self._transaction_depth:
+            yield
+            return
+        try:
+            yield
+            self._connection.commit()
+        except Exception:
+            self._connection.rollback()
+            raise
+
+    @contextmanager
+    def transaction(self):
+        """Group multiple mutations into one atomic commit."""
+        outermost = self._transaction_depth == 0
+        self._transaction_depth += 1
+        try:
+            yield self
+            if outermost:
+                self._connection.commit()
+        except Exception:
+            if outermost:
+                self._connection.rollback()
+            raise
+        finally:
+            self._transaction_depth -= 1
+
     def is_directed(self) -> bool:
         """
         Return True if the backend graph is directed.
@@ -138,20 +168,21 @@ class SQLBackend(Backend):
             Hashable: The ID of this node, as inserted
 
         """
-        if self.has_node(node_name):
-            existing_metadata = self.get_node_by_id(node_name)
-            existing_metadata.update(metadata)
-            self._connection.execute(
-                self._node_table.update().where(
-                    self._node_table.c[self._primary_key] == str(node_name)
-                ),
-                parameters={"_metadata": existing_metadata},
-            )
-        else:
-            self._connection.execute(
-                self._node_table.insert(),
-                parameters={self._primary_key: node_name, "_metadata": metadata},
-            )
+        with self._mutation():
+            if self.has_node(node_name):
+                existing_metadata = self.get_node_by_id(node_name)
+                existing_metadata.update(metadata)
+                self._connection.execute(
+                    self._node_table.update().where(
+                        self._node_table.c[self._primary_key] == str(node_name)
+                    ),
+                    parameters={"_metadata": existing_metadata},
+                )
+            else:
+                self._connection.execute(
+                    self._node_table.insert(),
+                    parameters={self._primary_key: node_name, "_metadata": metadata},
+                )
         return node_name
 
     def _insert_empty_node_if_missing(self, node_name: Hashable) -> None:
@@ -189,7 +220,8 @@ class SQLBackend(Backend):
             for node, metadata in nodes_for_adding
         ]
 
-        self._connection.execute(self._node_table.insert(), nodes)
+        with self._mutation():
+            self._connection.execute(self._node_table.insert(), nodes)
 
     def _upsert_node(self, node_name: Hashable, metadata: dict) -> Hashable:
         """
@@ -225,20 +257,19 @@ class SQLBackend(Backend):
             u (Hashable): id of the node
         """
 
-        # Remove nodes
-        statement = delete(self._node_table).where(
-            self._node_table.c[self._primary_key] == str(u)
-        )
-        self._connection.execute(statement)
-
-        # Remove edges for node
-        statement = delete(self._edge_table).where(
-            or_(
-                self._edge_table.c[self._edge_source_key] == str(u),
-                self._edge_table.c[self._edge_target_key] == str(u)
+        with self._mutation():
+            statement = delete(self._node_table).where(
+                self._node_table.c[self._primary_key] == str(u)
             )
-        )
-        self._connection.execute(statement)
+            self._connection.execute(statement)
+
+            statement = delete(self._edge_table).where(
+                or_(
+                    self._edge_table.c[self._edge_source_key] == str(u),
+                    self._edge_table.c[self._edge_target_key] == str(u),
+                )
+            )
+            self._connection.execute(statement)
 
     def all_nodes_as_iterable(self, include_metadata: bool = False) -> Generator:
         """
@@ -302,29 +333,42 @@ class SQLBackend(Backend):
         """
         pk = f"__{u}__{v}"
 
-        self._insert_empty_node_if_missing(u)
-        self._insert_empty_node_if_missing(v)
+        with self._mutation():
+            self._insert_empty_node_if_missing(u)
+            self._insert_empty_node_if_missing(v)
 
-        try:
-            self._connection.execute(
-                self._edge_table.insert(),
-                parameters={
-                    self._primary_key: pk,
-                    self._edge_source_key: u,
-                    self._edge_target_key: v,
-                    "_metadata": metadata,
-                },
-            )
-        except sqlalchemy.exc.IntegrityError:
-            # Edge already exists, perform the update:
-            existing_metadata = self.get_edge_by_id(u, v)
-            existing_metadata.update(metadata)
-            self._connection.execute(
-                self._edge_table.update().where(
-                    self._edge_table.c[self._primary_key] == pk
-                ),
-                parameters={"_metadata": existing_metadata},
-            )
+            if self._transaction_depth:
+                self._connection.execute(
+                    self._edge_table.insert(),
+                    parameters={
+                        self._primary_key: pk,
+                        self._edge_source_key: u,
+                        self._edge_target_key: v,
+                        "_metadata": metadata,
+                    },
+                )
+                return pk
+
+            try:
+                with self._connection.begin_nested():
+                    self._connection.execute(
+                        self._edge_table.insert(),
+                        parameters={
+                            self._primary_key: pk,
+                            self._edge_source_key: u,
+                            self._edge_target_key: v,
+                            "_metadata": metadata,
+                        },
+                    )
+            except sqlalchemy.exc.IntegrityError:
+                existing_metadata = self.get_edge_by_id(u, v)
+                existing_metadata.update(metadata)
+                self._connection.execute(
+                    self._edge_table.update().where(
+                        self._edge_table.c[self._primary_key] == pk
+                    ),
+                    parameters={"_metadata": existing_metadata},
+                )
 
         return pk
 
@@ -339,7 +383,8 @@ class SQLBackend(Backend):
             for u, v, metadata in ebunch_to_add
         ]
 
-        self._connection.execute(self._edge_table.insert(), edges)
+        with self._mutation():
+            self._connection.execute(self._edge_table.insert(), edges)
 
     def all_edges_as_iterable(self, include_metadata: bool = False) -> Generator:
         """
@@ -679,39 +724,39 @@ class SQLBackend(Backend):
             for source, target, metadata in zip(sources, targets, edge_metadata)
         ]
 
-        if edge_rows:
-            self._connection.execute(self._edge_table.insert(), edge_rows)
+        with self._mutation():
+            if edge_rows:
+                self._connection.execute(self._edge_table.insert(), edge_rows)
 
-        edge_toc = time.time() - edge_tic
+            edge_toc = time.time() - edge_tic
 
-        # now ingest nodes:
-        node_tic = time.time()
-        nodes = pd.unique(
-            pd.concat(
-                [edgelist[source_column], edgelist[target_column]],
-                ignore_index=True,
+            node_tic = time.time()
+            nodes = pd.unique(
+                pd.concat(
+                    [edgelist[source_column], edgelist[target_column]],
+                    ignore_index=True,
+                )
             )
-        )
 
-        node_rows = [
-            {
-                self._primary_key: str(node),
-                "_metadata": {},
-            }
-            for node in nodes
-        ]
+            node_rows = [
+                {
+                    self._primary_key: str(node),
+                    "_metadata": {},
+                }
+                for node in nodes
+            ]
 
-        if node_rows:
-            node_insert = self._node_table.insert()
-            if self._engine.dialect.name == "sqlite":
-                node_insert = node_insert.prefix_with("OR IGNORE")
-                self._connection.execute(node_insert, node_rows)
-            elif self._engine.dialect.name in {"mysql", "mariadb"}:
-                node_insert = node_insert.prefix_with("IGNORE")
-                self._connection.execute(node_insert, node_rows)
-            else:
-                for node in nodes:
-                    self._insert_empty_node_if_missing(node)
+            if node_rows:
+                node_insert = self._node_table.insert()
+                if self._engine.dialect.name == "sqlite":
+                    node_insert = node_insert.prefix_with("OR IGNORE")
+                    self._connection.execute(node_insert, node_rows)
+                elif self._engine.dialect.name in {"mysql", "mariadb"}:
+                    node_insert = node_insert.prefix_with("IGNORE")
+                    self._connection.execute(node_insert, node_rows)
+                else:
+                    for node in nodes:
+                        self._insert_empty_node_if_missing(node)
 
         return {
             "node_count": len(nodes),
@@ -721,7 +766,8 @@ class SQLBackend(Backend):
         }
 
     def commit(self):
-        self._connection.commit()
+        if self._connection.in_transaction():
+            self._connection.commit()
 
     def close(self):
         self._connection.close()
