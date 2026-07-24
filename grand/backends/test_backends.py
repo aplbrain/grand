@@ -214,6 +214,12 @@ class TestBackend:
     def test_missing_edge_raises(self, backend):
         backend, kwargs = backend
         xfail_backend(backend, DataFrameBackend, "APL #76: missing edges do not raise")
+        if _CAN_IMPORT_NETWORKIT:
+            xfail_backend(
+                backend,
+                NetworkitBackend,
+                "Networkit has_edge raises when endpoints are missing",
+            )
         b = backend(**kwargs)
 
         assert not b.has_edge("missing", "edge")
