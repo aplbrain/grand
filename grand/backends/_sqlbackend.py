@@ -58,6 +58,7 @@ class SQLBackend(Backend):
         sqlalchemy_kwargs = sqlalchemy_kwargs or {}
         self._engine = sqlalchemy.create_engine(db_url, **sqlalchemy_kwargs)
         self._connection = self._engine.connect()
+        self._transaction_depth = 0
         self._metadata = sqlalchemy.MetaData()
 
         # Create nodes table
@@ -105,12 +106,31 @@ class SQLBackend(Backend):
 
     @contextmanager
     def _mutation(self):
+        if self._transaction_depth:
+            yield
+            return
         try:
             yield
             self._connection.commit()
         except Exception:
             self._connection.rollback()
             raise
+
+    @contextmanager
+    def transaction(self):
+        """Group multiple mutations into one atomic commit."""
+        outermost = self._transaction_depth == 0
+        self._transaction_depth += 1
+        try:
+            yield self
+            if outermost:
+                self._connection.commit()
+        except Exception:
+            if outermost:
+                self._connection.rollback()
+            raise
+        finally:
+            self._transaction_depth -= 1
 
     def is_directed(self) -> bool:
         """

@@ -1,3 +1,5 @@
+from contextlib import nullcontext
+
 import pytest
 import os
 import pandas as pd
@@ -480,10 +482,12 @@ def test_node_addition_performance(backend):
 def test_get_density_performance(backend):
     backend, kwargs = backend
     G = Graph(backend=backend(directed=True, **kwargs))
-    for i in range(1000):
-        G.nx.add_node(i)
-    for i in range(1000 - 1):
-        G.nx.add_edge(i, i + 1)
+    transaction = getattr(G.backend, "transaction", None)
+    with transaction() if transaction else nullcontext():
+        for i in range(1000):
+            G.nx.add_node(i)
+        for i in range(1000 - 1):
+            G.nx.add_edge(i, i + 1)
     assert nx.density(G.nx) <= 0.005
 
 

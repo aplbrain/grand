@@ -45,6 +45,33 @@ def test_existing_edge_update_persists_without_explicit_commit(tmp_path):
     reopened.close()
 
 
+def test_transaction_context_commits_grouped_mutations(tmp_path):
+    db_url = f"sqlite:///{tmp_path / 'graph.db'}"
+    backend = SQLBackend(db_url=db_url, directed=True)
+
+    with backend.transaction():
+        backend.add_node("A", {})
+        backend.add_node("B", {})
+        backend.add_edge("A", "B", {})
+    backend.close()
+
+    reopened = SQLBackend(db_url=db_url, directed=True)
+    assert reopened.has_edge("A", "B")
+    reopened.close()
+
+
+def test_transaction_context_rolls_back_grouped_mutations(tmp_path):
+    backend = SQLBackend(db_url=f"sqlite:///{tmp_path / 'graph.db'}")
+
+    with pytest.raises(RuntimeError, match="abort"):
+        with backend.transaction():
+            backend.add_node("A", {})
+            raise RuntimeError("abort")
+
+    assert not backend.has_node("A")
+    backend.close()
+
+
 def test_add_edge_rolls_back_created_nodes_when_edge_insert_fails(tmp_path):
     backend = SQLBackend(db_url=f"sqlite:///{tmp_path / 'graph.db'}", directed=True)
     original_execute = backend._connection.execute
