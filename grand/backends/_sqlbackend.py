@@ -373,18 +373,43 @@ class SQLBackend(Backend):
         return pk
 
     def add_edges_from(self, ebunch_to_add, **attr):
-        edges = [
-            {
-                self._primary_key: f"__{u}__{v}",
-                self._edge_source_key: u,
-                self._edge_target_key: v,
-                "_metadata": {**attr, **metadata},
-            }
-            for u, v, metadata in ebunch_to_add
-        ]
+        edges = []
+        updates = []
+        endpoints = set()
+        for edge in ebunch_to_add:
+            if len(edge) == 2:
+                u, v = edge
+                metadata = {}
+            else:
+                u, v, metadata = edge
+            metadata = {**attr, **metadata}
+            endpoints.update((u, v))
+            if self.has_edge(u, v):
+                existing_metadata = self.get_edge_by_id(u, v)
+                existing_metadata.update(metadata)
+                updates.append((u, v, existing_metadata))
+            else:
+                edges.append(
+                    {
+                        self._primary_key: f"__{u}__{v}",
+                        self._edge_source_key: u,
+                        self._edge_target_key: v,
+                        "_metadata": metadata,
+                    }
+                )
 
-        with self._mutation():
-            self._connection.execute(self._edge_table.insert(), edges)
+        with self.transaction():
+            for node in endpoints:
+                self._insert_empty_node_if_missing(node)
+            if edges:
+                self._connection.execute(self._edge_table.insert(), edges)
+            for u, v, metadata in updates:
+                self._connection.execute(
+                    self._edge_table.update().where(
+                        self._edge_table.c[self._primary_key] == f"__{u}__{v}"
+                    ),
+                    parameters={"_metadata": metadata},
+                )
 
     def all_edges_as_iterable(self, include_metadata: bool = False) -> Generator:
         """
