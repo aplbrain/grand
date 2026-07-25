@@ -774,22 +774,9 @@ class SQLBackend(Backend):
             else [{} for _ in range(len(edgelist))]
         )
 
-        edge_rows = [
-            {
-                self._edge_source_key: source,
-                self._edge_target_key: target,
-                self._primary_key: f"__{source}__{target}",
-                "_metadata": metadata,
-            }
-            for source, target, metadata in zip(sources, targets, edge_metadata)
-        ]
-
-        with self._mutation():
-            if edge_rows:
-                self._connection.execute(self._edge_table.insert(), edge_rows)
-
+        with self.transaction():
+            self.add_edges_from(zip(sources, targets, edge_metadata))
             edge_toc = time.time() - edge_tic
-
             node_tic = time.time()
             nodes = pd.unique(
                 pd.concat(
@@ -798,25 +785,6 @@ class SQLBackend(Backend):
                 )
             )
 
-            node_rows = [
-                {
-                    self._primary_key: str(node),
-                    "_metadata": {},
-                }
-                for node in nodes
-            ]
-
-            if node_rows:
-                node_insert = self._node_table.insert()
-                if self._engine.dialect.name == "sqlite":
-                    node_insert = node_insert.prefix_with("OR IGNORE")
-                    self._connection.execute(node_insert, node_rows)
-                elif self._engine.dialect.name in {"mysql", "mariadb"}:
-                    node_insert = node_insert.prefix_with("IGNORE")
-                    self._connection.execute(node_insert, node_rows)
-                else:
-                    for node in nodes:
-                        self._insert_empty_node_if_missing(node)
 
         return {
             "node_count": len(nodes),
