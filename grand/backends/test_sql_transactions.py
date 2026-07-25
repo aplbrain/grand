@@ -1,4 +1,6 @@
 import pytest
+from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import Mock
 
 sqlalchemy = pytest.importorskip("sqlalchemy")
 
@@ -133,4 +135,42 @@ def test_add_edge_rolls_back_created_nodes_when_edge_insert_fails(tmp_path):
     backend._connection.execute = original_execute
     assert not backend.has_node("A")
     assert not backend.has_node("B")
+    backend.close()
+
+
+def test_context_manager_closes_connection_and_disposes_engine(tmp_path):
+    backend = SQLBackend(db_url=f"sqlite:///{tmp_path / 'graph.db'}")
+    dispose = backend._engine.dispose
+    backend._engine.dispose = Mock(wraps=dispose)
+
+    with backend as entered:
+        assert entered is backend
+        backend.add_node("A", {})
+
+    assert backend._closed
+    assert backend._connection.closed
+    backend._engine.dispose.assert_called_once_with()
+    with pytest.raises(RuntimeError, match="closed"):
+        backend.add_node("B", {})
+
+
+def test_close_is_idempotent(tmp_path):
+    backend = SQLBackend(db_url=f"sqlite:///{tmp_path / 'graph.db'}")
+
+    backend.close()
+    backend.close()
+
+    assert backend._closed
+
+
+def test_concurrent_mutations_do_not_share_connection_simultaneously(tmp_path):
+    backend = SQLBackend(
+        db_url=f"sqlite:///{tmp_path / 'graph.db'}",
+        sqlalchemy_kwargs={"connect_args": {"check_same_thread": False}},
+    )
+
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        list(executor.map(lambda node: backend.add_node(node, {}), range(20)))
+
+    assert backend.get_node_count() == 20
     backend.close()

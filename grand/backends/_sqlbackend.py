@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from threading import RLock
 from typing import Hashable, Generator
 import time
 
@@ -13,9 +14,26 @@ _DEFAULT_SQL_URL = "sqlite:///"
 _DEFAULT_SQL_STR_LEN = 64
 
 
+class _LockedConnection:
+    def __init__(self, connection, lock):
+        self._connection = connection
+        self._lock = lock
+
+    def execute(self, *args, **kwargs):
+        with self._lock:
+            return self._connection.execute(*args, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self._connection, name)
+
+
 class SQLBackend(Backend):
     """
     A graph datastore that uses a SQL-like store for persistance and queries.
+
+    Operations on one backend instance are serialized because SQLAlchemy
+    connections cannot be used concurrently. Use separate backend instances
+    when parallel database operations are required.
 
     """
 
@@ -57,7 +75,9 @@ class SQLBackend(Backend):
 
         sqlalchemy_kwargs = sqlalchemy_kwargs or {}
         self._engine = sqlalchemy.create_engine(db_url, **sqlalchemy_kwargs)
-        self._connection = self._engine.connect()
+        self._lock = RLock()
+        self._connection = _LockedConnection(self._engine.connect(), self._lock)
+        self._closed = False
         self._transaction_depth = 0
         self._metadata = sqlalchemy.MetaData()
 
@@ -106,31 +126,46 @@ class SQLBackend(Backend):
 
     @contextmanager
     def _mutation(self):
-        if self._transaction_depth:
-            yield
-            return
-        try:
-            yield
-            self._connection.commit()
-        except Exception:
-            self._connection.rollback()
-            raise
+        with self._lock:
+            self._ensure_open()
+            if self._transaction_depth:
+                yield
+                return
+            try:
+                yield
+                self._connection.commit()
+            except Exception:
+                self._connection.rollback()
+                raise
 
     @contextmanager
     def transaction(self):
         """Group multiple mutations into one atomic commit."""
-        outermost = self._transaction_depth == 0
-        self._transaction_depth += 1
-        try:
-            yield self
-            if outermost:
-                self._connection.commit()
-        except Exception:
-            if outermost:
-                self._connection.rollback()
-            raise
-        finally:
-            self._transaction_depth -= 1
+        with self._lock:
+            self._ensure_open()
+            outermost = self._transaction_depth == 0
+            self._transaction_depth += 1
+            try:
+                yield self
+                if outermost:
+                    self._connection.commit()
+            except Exception:
+                if outermost:
+                    self._connection.rollback()
+                raise
+            finally:
+                self._transaction_depth -= 1
+
+    def _ensure_open(self):
+        if self._closed:
+            raise RuntimeError("SQLBackend is closed")
+
+    def __enter__(self):
+        self._ensure_open()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
     def is_directed(self) -> bool:
         """
@@ -791,8 +826,17 @@ class SQLBackend(Backend):
         }
 
     def commit(self):
-        if self._connection.in_transaction():
-            self._connection.commit()
+        with self._lock:
+            self._ensure_open()
+            if self._connection.in_transaction():
+                self._connection.commit()
 
     def close(self):
-        self._connection.close()
+        with self._lock:
+            if self._closed:
+                return
+            if self._connection.in_transaction():
+                self._connection.rollback()
+            self._connection.close()
+            self._engine.dispose()
+            self._closed = True
