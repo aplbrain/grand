@@ -1,6 +1,7 @@
 import pytest
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import Mock
+import pandas as pd
 
 sqlalchemy = pytest.importorskip("sqlalchemy")
 
@@ -173,4 +174,77 @@ def test_concurrent_mutations_do_not_share_connection_simultaneously(tmp_path):
         list(executor.map(lambda node: backend.add_node(node, {}), range(20)))
 
     assert backend.get_node_count() == 20
+    backend.close()
+
+
+def test_ingest_preserves_existing_nodes_metadata_and_edges(tmp_path):
+    backend = SQLBackend(
+        db_url=f"sqlite:///{tmp_path / 'graph.db'}",
+        directed=True,
+    )
+    backend.add_node("existing", {"kind": "preserved"})
+    backend.add_edge("existing", "A", {"weight": 1, "label": "old"})
+    edgelist = pd.DataFrame(
+        {
+            "source": ["existing", "A"],
+            "target": ["A", "B"],
+            "weight": [2, 3],
+        }
+    )
+
+    backend.ingest_from_edgelist_dataframe(edgelist, "source", "target")
+
+    assert backend.get_node_by_id("existing") == {"kind": "preserved"}
+    assert backend.get_edge_by_id("existing", "A") == {
+        "weight": 2,
+        "label": "old",
+    }
+    assert backend.get_edge_by_id("A", "B") == {"weight": 3}
+    assert set(backend.all_nodes_as_iterable()) == {"existing", "A", "B"}
+    backend.close()
+
+
+def test_ingest_preserves_primary_key_schema(tmp_path):
+    backend = SQLBackend(db_url=f"sqlite:///{tmp_path / 'graph.db'}")
+
+    backend.ingest_from_edgelist_dataframe(
+        pd.DataFrame({"source": ["A"], "target": ["B"]}),
+        "source",
+        "target",
+    )
+
+    assert backend._node_table.primary_key.columns.keys() == ["ID"]
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        backend._connection.execute(
+            backend._node_table.insert(),
+            [
+                {"ID": "duplicate", "_metadata": {}},
+                {"ID": "duplicate", "_metadata": {}},
+            ],
+        )
+    backend._connection.rollback()
+    backend.close()
+
+
+def test_ingest_rolls_back_nodes_and_edges_on_failure(tmp_path):
+    backend = SQLBackend(db_url=f"sqlite:///{tmp_path / 'graph.db'}")
+    original_execute = backend._connection.execute
+
+    def fail_edge_insert(statement, *args, **kwargs):
+        if getattr(statement, "table", None) is backend._edge_table:
+            raise RuntimeError("ingest failed")
+        return original_execute(statement, *args, **kwargs)
+
+    backend._connection.execute = fail_edge_insert
+
+    with pytest.raises(RuntimeError, match="ingest failed"):
+        backend.ingest_from_edgelist_dataframe(
+            pd.DataFrame({"source": ["A"], "target": ["B"]}),
+            "source",
+            "target",
+        )
+
+    backend._connection.execute = original_execute
+    assert backend.get_node_count() == 0
+    assert backend.get_edge_count() == 0
     backend.close()

@@ -776,20 +776,46 @@ class SQLBackend(Backend):
 
         edge_rows = [
             {
+                self._primary_key: f"__{source}__{target}",
                 self._edge_source_key: source,
                 self._edge_target_key: target,
-                self._primary_key: f"__{source}__{target}",
                 "_metadata": metadata,
             }
             for source, target, metadata in zip(sources, targets, edge_metadata)
         ]
+        edge_ids = [row[self._primary_key] for row in edge_rows]
 
-        with self._mutation():
-            if edge_rows:
-                self._connection.execute(self._edge_table.insert(), edge_rows)
-
+        with self.transaction():
+            try:
+                with self._connection.begin_nested():
+                    if edge_rows:
+                        self._connection.execute(self._edge_table.insert(), edge_rows)
+            except sqlalchemy.exc.IntegrityError:
+                existing = {
+                    row[self._primary_key]: row["_metadata"]
+                    for row in self._connection.execute(
+                        select(
+                            self._edge_table.c[self._primary_key],
+                            self._edge_table.c["_metadata"],
+                        ).where(self._edge_table.c[self._primary_key].in_(edge_ids))
+                    ).mappings()
+                }
+                new_edges = [
+                    row for row in edge_rows if row[self._primary_key] not in existing
+                ]
+                if new_edges:
+                    self._connection.execute(self._edge_table.insert(), new_edges)
+                for row in edge_rows:
+                    edge_id = row[self._primary_key]
+                    if edge_id in existing:
+                        metadata = {**existing[edge_id], **row["_metadata"]}
+                        self._connection.execute(
+                            self._edge_table.update().where(
+                                self._edge_table.c[self._primary_key] == edge_id
+                            ),
+                            parameters={"_metadata": metadata},
+                        )
             edge_toc = time.time() - edge_tic
-
             node_tic = time.time()
             nodes = pd.unique(
                 pd.concat(
@@ -797,26 +823,33 @@ class SQLBackend(Backend):
                     ignore_index=True,
                 )
             )
-
             node_rows = [
-                {
-                    self._primary_key: str(node),
-                    "_metadata": {},
-                }
-                for node in nodes
+                {self._primary_key: str(node), "_metadata": {}} for node in nodes
             ]
-
             if node_rows:
-                node_insert = self._node_table.insert()
+                insert = self._node_table.insert()
                 if self._engine.dialect.name == "sqlite":
-                    node_insert = node_insert.prefix_with("OR IGNORE")
-                    self._connection.execute(node_insert, node_rows)
+                    insert = insert.prefix_with("OR IGNORE")
                 elif self._engine.dialect.name in {"mysql", "mariadb"}:
-                    node_insert = node_insert.prefix_with("IGNORE")
-                    self._connection.execute(node_insert, node_rows)
+                    insert = insert.prefix_with("IGNORE")
                 else:
-                    for node in nodes:
-                        self._insert_empty_node_if_missing(node)
+                    existing_nodes = set(
+                        self._connection.execute(
+                            select(self._node_table.c[self._primary_key]).where(
+                                self._node_table.c[self._primary_key].in_(
+                                    [row[self._primary_key] for row in node_rows]
+                                )
+                            )
+                        ).scalars()
+                    )
+                    node_rows = [
+                        row
+                        for row in node_rows
+                        if row[self._primary_key] not in existing_nodes
+                    ]
+                if node_rows:
+                    self._connection.execute(insert, node_rows)
+
 
         return {
             "node_count": len(nodes),
