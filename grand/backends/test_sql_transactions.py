@@ -63,21 +63,17 @@ def test_transaction_context_commits_grouped_mutations(tmp_path):
     reopened.close()
 
 
-def test_transaction_context_merges_duplicate_edge_metadata(tmp_path):
+def test_transaction_context_rejects_duplicate_edges(tmp_path):
     backend = SQLBackend(
         db_url=f"sqlite:///{tmp_path / 'graph.db'}", directed=True
     )
 
-    with backend.transaction():
-        backend.add_edge("A", "B", {"old": True, "value": 1})
-        backend.add_edge("A", "B", {"new": True, "value": 2})
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        with backend.transaction():
+            backend.add_edge("A", "B", {"value": 1})
+            backend.add_edge("A", "B", {"value": 2})
 
-    assert backend.get_edge_by_id("A", "B") == {
-        "old": True,
-        "new": True,
-        "value": 2,
-    }
-    assert backend.get_edge_count() == 1
+    assert backend.get_edge_count() == 0
     backend.close()
 
 
