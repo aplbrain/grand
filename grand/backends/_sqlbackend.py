@@ -795,54 +795,30 @@ class SQLBackend(Backend):
             }
             for source, target, metadata in zip(sources, targets, edge_metadata)
         ]
+        edge_ids = [row[self._primary_key] for row in edge_rows]
         with self.transaction():
-            if edge_rows:
-                existing = {}
-                for start in range(0, len(edge_rows), 400):
-                    chunk = edge_rows[start : start + 400]
-                    rows = self._connection.execute(
+            try:
+                with self._connection.begin_nested():
+                    if edge_rows:
+                        self._connection.execute(self._edge_table.insert(), edge_rows)
+            except sqlalchemy.exc.IntegrityError:
+                existing = {
+                    row[self._primary_key]: row
+                    for row in self._connection.execute(
                         self._edge_table.select().where(
-                            or_(
-                                *[
-                                    (
-                                        (
-                                            self._edge_table.c[self._edge_source_key]
-                                            == row[self._edge_source_key]
-                                        )
-                                        & (
-                                            self._edge_table.c[self._edge_target_key]
-                                            == row[self._edge_target_key]
-                                        )
-                                    )
-                                    for row in chunk
-                                ]
-                            )
+                            self._edge_table.c[self._primary_key].in_(edge_ids)
                         )
                     ).mappings()
-                    existing.update(
-                        {
-                            (
-                                row[self._edge_source_key],
-                                row[self._edge_target_key],
-                            ): row
-                            for row in rows
-                        }
-                    )
+                }
                 new_edges = [
-                    row
-                    for row in edge_rows
-                    if (row[self._edge_source_key], row[self._edge_target_key])
-                    not in existing
+                    row for row in edge_rows if row[self._primary_key] not in existing
                 ]
                 if new_edges:
                     self._connection.execute(self._edge_table.insert(), new_edges)
                 for row in edge_rows:
-                    endpoints = (
-                        row[self._edge_source_key],
-                        row[self._edge_target_key],
-                    )
-                    if endpoints in existing:
-                        existing_row = existing[endpoints]
+                    edge_id = row[self._primary_key]
+                    if edge_id in existing:
+                        existing_row = existing[edge_id]
                         metadata = {
                             **existing_row["_metadata"],
                             **row["_metadata"],
@@ -850,7 +826,7 @@ class SQLBackend(Backend):
                         self._connection.execute(
                             self._edge_table.update().where(
                                 self._edge_table.c[self._primary_key]
-                                == existing_row[self._primary_key]
+                                == edge_id
                             ),
                             parameters={"_metadata": metadata},
                         )

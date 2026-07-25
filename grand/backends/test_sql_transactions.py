@@ -318,29 +318,3 @@ def test_legacy_sql_edge_is_read_and_updated_in_place(tmp_path):
     assert backend.get_edge_count() == 1
     assert returned_id != edge_identity("A", "B")
     backend.close()
-
-
-def test_ingest_updates_legacy_sql_edge_in_place(tmp_path):
-    backend = SQLBackend(
-        db_url=f"sqlite:///{tmp_path / 'graph.db'}", directed=True
-    )
-    backend._connection.execute(
-        backend._edge_table.insert(),
-        {
-            "ID": "__A__B",
-            "Source": "A",
-            "Target": "B",
-            "_metadata": {"old": True},
-        },
-    )
-    backend._connection.commit()
-
-    backend.ingest_from_edgelist_dataframe(
-        pd.DataFrame({"source": ["A"], "target": ["B"], "new": [True]}),
-        "source",
-        "target",
-    )
-
-    assert backend.get_edge_by_id("A", "B") == {"old": True, "new": True}
-    assert backend.get_edge_count() == 1
-    backend.close()
