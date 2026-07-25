@@ -270,6 +270,31 @@ def test_collision_safe_edge_ids_support_ambiguous_and_long_endpoints(tmp_path):
     backend.close()
 
 
+def test_existing_sql_edge_uses_primary_key_lookup(tmp_path):
+    backend = SQLBackend(
+        db_url=f"sqlite:///{tmp_path / 'graph.db'}", directed=True
+    )
+    backend.add_edge("A", "B", {"old": True})
+    statements = []
+    original_execute = backend._connection.execute
+
+    def record_execute(statement, *args, **kwargs):
+        statements.append(statement)
+        return original_execute(statement, *args, **kwargs)
+
+    backend._connection.execute = record_execute
+    backend.add_edge("A", "B", {"new": True})
+
+    edge_selects = [
+        statement
+        for statement in statements
+        if getattr(statement, "is_select", False)
+        and statement.get_final_froms() == [backend._edge_table]
+    ]
+    assert len(edge_selects) == 1
+    backend.close()
+
+
 def test_legacy_sql_edge_is_read_and_updated_in_place(tmp_path):
     backend = SQLBackend(
         db_url=f"sqlite:///{tmp_path / 'graph.db'}", directed=True

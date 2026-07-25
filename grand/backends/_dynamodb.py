@@ -261,6 +261,11 @@ class DynamoDBBackend(Backend):
         return "Item" in response
 
     def _edge_item(self, u: Hashable, v: Hashable):
+        item = self._edge_table.get_item(
+            Key={self._primary_key: edge_identity(u, v)}
+        ).get("Item")
+        if item is not None:
+            return item
         for item in self._query_edges(_EDGE_SOURCE_INDEX, self._edge_source_key, u):
             if item[self._edge_target_key] == str(v):
                 return item

@@ -137,6 +137,7 @@ def test_undirected_neighbors_query_both_indexes_and_deduplicate(backend):
 
 def test_add_edge_uses_collision_safe_bounded_identity(backend):
     backend._node_table.get_item.return_value = {"Item": {"ID": "exists"}}
+    backend._edge_table.get_item.return_value = {}
     backend._edge_table.query.return_value = {"Items": []}
 
     backend.add_edge("a__b", "c", {"edge": 1})
@@ -148,8 +149,28 @@ def test_add_edge_uses_collision_safe_bounded_identity(backend):
     assert len(first["ID"]) == len(second["ID"]) == 67
 
 
+def test_add_edge_uses_primary_key_lookup_without_index_query(backend):
+    backend._node_table.get_item.return_value = {"Item": {"ID": "exists"}}
+    backend._edge_table.get_item.return_value = {
+        "Item": {
+            "ID": edge_identity("A", "B"),
+            "Source": "A",
+            "Target": "B",
+            "old": True,
+        }
+    }
+
+    backend.add_edge("A", "B", {"new": True})
+
+    backend._edge_table.get_item.assert_called_once_with(
+        Key={"ID": edge_identity("A", "B")}
+    )
+    backend._edge_table.query.assert_not_called()
+
+
 def test_add_edge_updates_legacy_dynamodb_item_in_place(backend):
     backend._node_table.get_item.return_value = {"Item": {"ID": "exists"}}
+    backend._edge_table.get_item.return_value = {}
     backend._edge_table.query.return_value = {
         "Items": [
             {

@@ -359,6 +359,14 @@ class SQLBackend(Backend):
         for source, target in pairs:
             row = self._connection.execute(
                 self._edge_table.select().where(
+                    self._edge_table.c[self._primary_key]
+                    == edge_identity(source, target)
+                )
+            ).fetchone()
+            if row:
+                return row
+            row = self._connection.execute(
+                self._edge_table.select().where(
                     self._edge_table.c[self._edge_source_key] == source,
                     self._edge_table.c[self._edge_target_key] == target,
                 )
