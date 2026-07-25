@@ -818,8 +818,32 @@ class SQLBackend(Backend):
                     ignore_index=True,
                 )
             )
-            for node in nodes:
-                self._insert_empty_node_if_missing(node)
+            node_rows = [
+                {self._primary_key: str(node), "_metadata": {}} for node in nodes
+            ]
+            if node_rows:
+                insert = self._node_table.insert()
+                if self._engine.dialect.name == "sqlite":
+                    insert = insert.prefix_with("OR IGNORE")
+                elif self._engine.dialect.name in {"mysql", "mariadb"}:
+                    insert = insert.prefix_with("IGNORE")
+                else:
+                    existing_nodes = set(
+                        self._connection.execute(
+                            select(self._node_table.c[self._primary_key]).where(
+                                self._node_table.c[self._primary_key].in_(
+                                    [row[self._primary_key] for row in node_rows]
+                                )
+                            )
+                        ).scalars()
+                    )
+                    node_rows = [
+                        row
+                        for row in node_rows
+                        if row[self._primary_key] not in existing_nodes
+                    ]
+                if node_rows:
+                    self._connection.execute(insert, node_rows)
 
 
         return {
