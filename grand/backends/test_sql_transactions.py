@@ -63,6 +63,20 @@ def test_transaction_context_commits_grouped_mutations(tmp_path):
     reopened.close()
 
 
+def test_transaction_context_rejects_duplicate_edges(tmp_path):
+    backend = SQLBackend(
+        db_url=f"sqlite:///{tmp_path / 'graph.db'}", directed=True
+    )
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        with backend.transaction():
+            backend.add_edge("A", "B", {"value": 1})
+            backend.add_edge("A", "B", {"value": 2})
+
+    assert backend.get_edge_count() == 0
+    backend.close()
+
+
 def test_transaction_context_rolls_back_grouped_mutations(tmp_path):
     backend = SQLBackend(db_url=f"sqlite:///{tmp_path / 'graph.db'}")
 
@@ -247,4 +261,69 @@ def test_ingest_rolls_back_nodes_and_edges_on_failure(tmp_path):
     backend._connection.execute = original_execute
     assert backend.get_node_count() == 0
     assert backend.get_edge_count() == 0
+    backend.close()
+
+
+def test_collision_safe_edge_ids_support_ambiguous_and_long_endpoints(tmp_path):
+    backend = SQLBackend(
+        db_url=f"sqlite:///{tmp_path / 'graph.db'}", directed=True
+    )
+    long_source = "source" * 100
+    long_target = "target" * 100
+
+    first_id = backend.add_edge("a__b", "c", {"edge": 1})
+    second_id = backend.add_edge("a", "b__c", {"edge": 2})
+    long_id = backend.add_edge(long_source, long_target, {"edge": 3})
+
+    assert first_id != second_id
+    assert len(first_id) == len(second_id) == len(long_id) == 67
+    assert backend.get_edge_by_id("a__b", "c") == {"edge": 1}
+    assert backend.get_edge_by_id("a", "b__c") == {"edge": 2}
+    assert backend.get_edge_by_id(long_source, long_target) == {"edge": 3}
+    backend.close()
+
+
+def test_existing_sql_edge_uses_primary_key_lookup(tmp_path):
+    backend = SQLBackend(
+        db_url=f"sqlite:///{tmp_path / 'graph.db'}", directed=True
+    )
+    backend.add_edge("A", "B", {"old": True})
+    statements = []
+    original_execute = backend._connection.execute
+
+    def record_execute(statement, *args, **kwargs):
+        statements.append(statement)
+        return original_execute(statement, *args, **kwargs)
+
+    backend._connection.execute = record_execute
+    backend.add_edge("A", "B", {"new": True})
+
+    edge_selects = [
+        statement
+        for statement in statements
+        if getattr(statement, "is_select", False)
+        and statement.get_final_froms() == [backend._edge_table]
+    ]
+    assert len(edge_selects) == 1
+    backend.close()
+
+
+def test_legacy_sql_edge_remains_readable(tmp_path):
+    backend = SQLBackend(
+        db_url=f"sqlite:///{tmp_path / 'graph.db'}", directed=True
+    )
+    backend.add_nodes_from([("A", {}), ("B", {})])
+    backend._connection.execute(
+        backend._edge_table.insert(),
+        {
+            "ID": "__A__B",
+            "Source": "A",
+            "Target": "B",
+            "_metadata": {"old": True},
+        },
+    )
+    backend._connection.commit()
+
+    assert backend.get_edge_by_id("A", "B") == {"old": True}
+    assert backend.get_edge_count() == 1
     backend.close()

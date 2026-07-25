@@ -9,9 +9,11 @@ from sqlalchemy.sql import delete, select
 from sqlalchemy import or_, func, Index
 
 from .backend import Backend
+from ._edge_identity import edge_identity
 
 _DEFAULT_SQL_URL = "sqlite:///"
 _DEFAULT_SQL_STR_LEN = 64
+_EDGE_ID_STR_LEN = 67
 
 
 class _LockedConnection:
@@ -108,7 +110,7 @@ class SQLBackend(Backend):
             self._metadata,
             sqlalchemy.Column(
                 self._primary_key,
-                sqlalchemy.String(_DEFAULT_SQL_STR_LEN),
+                sqlalchemy.String(_EDGE_ID_STR_LEN),
                 primary_key=True,
             ),
             sqlalchemy.Column("_metadata", sqlalchemy.JSON),
@@ -350,6 +352,29 @@ class SQLBackend(Backend):
             is not None
         )
 
+    def _edge_row(self, u: Hashable, v: Hashable):
+        pairs = [(str(u), str(v))]
+        if not self._directed:
+            pairs.append((str(v), str(u)))
+        for source, target in pairs:
+            row = self._connection.execute(
+                self._edge_table.select().where(
+                    self._edge_table.c[self._primary_key]
+                    == edge_identity(source, target)
+                )
+            ).fetchone()
+            if row:
+                return row
+            row = self._connection.execute(
+                self._edge_table.select().where(
+                    self._edge_table.c[self._edge_source_key] == source,
+                    self._edge_table.c[self._edge_target_key] == target,
+                )
+            ).fetchone()
+            if row:
+                return row
+        return None
+
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
         """
         Add a new edge to the graph between two nodes.
@@ -366,7 +391,7 @@ class SQLBackend(Backend):
             Hashable: The edge ID, as inserted.
 
         """
-        pk = f"__{u}__{v}"
+        pk = edge_identity(u, v)
 
         with self._mutation():
             self._insert_empty_node_if_missing(u)
@@ -396,8 +421,12 @@ class SQLBackend(Backend):
                         },
                     )
             except sqlalchemy.exc.IntegrityError:
-                existing_metadata = self.get_edge_by_id(u, v)
-                existing_metadata.update(metadata)
+                existing = self._connection.execute(
+                    self._edge_table.select().where(
+                        self._edge_table.c[self._primary_key] == pk
+                    )
+                ).fetchone()
+                existing_metadata = {**existing._metadata, **metadata}
                 self._connection.execute(
                     self._edge_table.update().where(
                         self._edge_table.c[self._primary_key] == pk
@@ -409,7 +438,6 @@ class SQLBackend(Backend):
 
     def add_edges_from(self, ebunch_to_add, **attr):
         edges = []
-        updates = []
         endpoints = set()
         for edge in ebunch_to_add:
             if len(edge) == 2:
@@ -419,32 +447,56 @@ class SQLBackend(Backend):
                 u, v, metadata = edge
             metadata = {**attr, **metadata}
             endpoints.update((u, v))
-            if self.has_edge(u, v):
-                existing_metadata = self.get_edge_by_id(u, v)
-                existing_metadata.update(metadata)
-                updates.append((u, v, existing_metadata))
-            else:
-                edges.append(
-                    {
-                        self._primary_key: f"__{u}__{v}",
-                        self._edge_source_key: u,
-                        self._edge_target_key: v,
-                        "_metadata": metadata,
-                    }
-                )
+            edges.append(
+                {
+                    self._primary_key: edge_identity(u, v),
+                    self._edge_source_key: u,
+                    self._edge_target_key: v,
+                    "_metadata": metadata,
+                }
+            )
 
         with self.transaction():
             for node in endpoints:
                 self._insert_empty_node_if_missing(node)
             if edges:
-                self._connection.execute(self._edge_table.insert(), edges)
-            for u, v, metadata in updates:
-                self._connection.execute(
-                    self._edge_table.update().where(
-                        self._edge_table.c[self._primary_key] == f"__{u}__{v}"
-                    ),
-                    parameters={"_metadata": metadata},
-                )
+                try:
+                    with self._connection.begin_nested():
+                        self._connection.execute(self._edge_table.insert(), edges)
+                except sqlalchemy.exc.IntegrityError:
+                    edge_ids = [row[self._primary_key] for row in edges]
+                    existing = {
+                        row[self._primary_key]: row["_metadata"]
+                        for row in self._connection.execute(
+                            select(
+                                self._edge_table.c[self._primary_key],
+                                self._edge_table.c["_metadata"],
+                            ).where(
+                                self._edge_table.c[self._primary_key].in_(edge_ids)
+                            )
+                        ).mappings()
+                    }
+                    new_edges = [
+                        row
+                        for row in edges
+                        if row[self._primary_key] not in existing
+                    ]
+                    if new_edges:
+                        self._connection.execute(self._edge_table.insert(), new_edges)
+                    for row in edges:
+                        edge_id = row[self._primary_key]
+                        if edge_id in existing:
+                            self._connection.execute(
+                                self._edge_table.update().where(
+                                    self._edge_table.c[self._primary_key] == edge_id
+                                ),
+                                parameters={
+                                    "_metadata": {
+                                        **existing[edge_id],
+                                        **row["_metadata"],
+                                    }
+                                },
+                            )
 
     def all_edges_as_iterable(self, include_metadata: bool = False) -> Generator:
         """
@@ -503,28 +555,10 @@ class SQLBackend(Backend):
             dict: Metadata associated with this edge
 
         """
-        if self._directed:
-            pk = f"__{u}__{v}"
-            result = self._connection.execute(
-                self._edge_table.select().where(
-                    self._edge_table.c[self._primary_key] == pk
-                )
-            ).fetchone()
-            if result:
-                return result._metadata
-            raise KeyError(f"Edge {u}-{v} not found.")
-        else:
-            result = self._connection.execute(
-                self._edge_table.select().where(
-                    or_(
-                        (self._edge_table.c[self._primary_key] == f"__{u}__{v}"),
-                        (self._edge_table.c[self._primary_key] == f"__{v}__{u}"),
-                    )
-                )
-            ).fetchone()
-            if result:
-                return result._metadata
-            raise KeyError(f"Edge {u}-{v} not found.")
+        result = self._edge_row(u, v)
+        if result:
+            return result._metadata
+        raise KeyError(f"Edge {u}-{v} not found.")
 
     def get_node_neighbors(
         self, u: Hashable, include_metadata: bool = False
@@ -776,7 +810,7 @@ class SQLBackend(Backend):
 
         edge_rows = [
             {
-                self._primary_key: f"__{source}__{target}",
+                self._primary_key: edge_identity(source, target),
                 self._edge_source_key: source,
                 self._edge_target_key: target,
                 "_metadata": metadata,
@@ -784,7 +818,6 @@ class SQLBackend(Backend):
             for source, target, metadata in zip(sources, targets, edge_metadata)
         ]
         edge_ids = [row[self._primary_key] for row in edge_rows]
-
         with self.transaction():
             try:
                 with self._connection.begin_nested():
@@ -792,12 +825,11 @@ class SQLBackend(Backend):
                         self._connection.execute(self._edge_table.insert(), edge_rows)
             except sqlalchemy.exc.IntegrityError:
                 existing = {
-                    row[self._primary_key]: row["_metadata"]
+                    row[self._primary_key]: row
                     for row in self._connection.execute(
-                        select(
-                            self._edge_table.c[self._primary_key],
-                            self._edge_table.c["_metadata"],
-                        ).where(self._edge_table.c[self._primary_key].in_(edge_ids))
+                        self._edge_table.select().where(
+                            self._edge_table.c[self._primary_key].in_(edge_ids)
+                        )
                     ).mappings()
                 }
                 new_edges = [
@@ -808,10 +840,15 @@ class SQLBackend(Backend):
                 for row in edge_rows:
                     edge_id = row[self._primary_key]
                     if edge_id in existing:
-                        metadata = {**existing[edge_id], **row["_metadata"]}
+                        existing_row = existing[edge_id]
+                        metadata = {
+                            **existing_row["_metadata"],
+                            **row["_metadata"],
+                        }
                         self._connection.execute(
                             self._edge_table.update().where(
-                                self._edge_table.c[self._primary_key] == edge_id
+                                self._edge_table.c[self._primary_key]
+                                == edge_id
                             ),
                             parameters={"_metadata": metadata},
                         )
