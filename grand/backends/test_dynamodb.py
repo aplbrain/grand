@@ -23,6 +23,7 @@ from ._dynamodb import (  # noqa: E402
     DynamoDBBackend,
     _create_dynamo_table,
 )
+from ._edge_identity import edge_identity  # noqa: E402
 
 
 @pytest.fixture
@@ -134,6 +135,45 @@ def test_undirected_neighbors_query_both_indexes_and_deduplicate(backend):
     assert backend._edge_table.scan.call_args_list == []
 
 
+def test_add_edge_uses_collision_safe_bounded_identity(backend):
+    backend._node_table.get_item.return_value = {"Item": {"ID": "exists"}}
+    backend._edge_table.query.return_value = {"Items": []}
+
+    backend.add_edge("a__b", "c", {"edge": 1})
+    first = backend._edge_table.put_item.call_args.kwargs["Item"]
+    backend.add_edge("a", "b__c", {"edge": 2})
+    second = backend._edge_table.put_item.call_args.kwargs["Item"]
+
+    assert first["ID"] != second["ID"]
+    assert len(first["ID"]) == len(second["ID"]) == 67
+
+
+def test_add_edge_updates_legacy_dynamodb_item_in_place(backend):
+    backend._node_table.get_item.return_value = {"Item": {"ID": "exists"}}
+    backend._edge_table.query.return_value = {
+        "Items": [
+            {
+                "ID": "__A__B",
+                "Source": "A",
+                "Target": "B",
+                "old": True,
+            }
+        ]
+    }
+
+    backend.add_edge("A", "B", {"new": True})
+
+    item = backend._edge_table.put_item.call_args.kwargs["Item"]
+    assert item == {
+        "ID": "__A__B",
+        "Source": "A",
+        "Target": "B",
+        "old": True,
+        "new": True,
+    }
+    assert item["ID"] != edge_identity("A", "B")
+
+
 def test_ingest_dataframe_is_pandas_2_compatible_without_cloud_resources(backend):
     edge_writer = Mock()
     node_writer = Mock()
@@ -158,8 +198,18 @@ def test_ingest_dataframe_is_pandas_2_compatible_without_cloud_resources(backend
     assert result["node_count"] == 3
     assert result["edge_count"] == 2
     assert [call.kwargs["Item"] for call in edge_writer.put_item.call_args_list] == [
-        {"ID": "__1__2", "Source": "1", "Target": "2", "weight": 0.5},
-        {"ID": "__2__3", "Source": "2", "Target": "3", "weight": 1.5},
+        {
+            "ID": edge_identity(1, 2),
+            "Source": "1",
+            "Target": "2",
+            "weight": 0.5,
+        },
+        {
+            "ID": edge_identity(2, 3),
+            "Source": "2",
+            "Target": "3",
+            "weight": 1.5,
+        },
     ]
     assert [call.kwargs["Item"] for call in node_writer.put_item.call_args_list] == [
         {"ID": "1"},

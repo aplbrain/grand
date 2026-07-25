@@ -6,6 +6,7 @@ import boto3
 from boto3.dynamodb.conditions import Key
 
 from .backend import Backend
+from ._edge_identity import edge_identity
 
 
 _DEFAULT_DYNAMODB_URL = "http://localhost:4566"
@@ -259,6 +260,12 @@ class DynamoDBBackend(Backend):
         )
         return "Item" in response
 
+    def _edge_item(self, u: Hashable, v: Hashable):
+        for item in self._query_edges(_EDGE_SOURCE_INDEX, self._edge_source_key, u):
+            if item[self._edge_target_key] == str(v):
+                return item
+        return None
+
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
         """
         Add a new edge to the graph between two nodes.
@@ -275,24 +282,33 @@ class DynamoDBBackend(Backend):
             Hashable: The edge ID, as inserted.
 
         """
-        metadata[self._primary_key] = f"__{u}__{v}"
         if self._edge_source_key in metadata:
             raise KeyError(
                 f"'{self._edge_source_key}' should not be in metadata. I need that for PK!"
             )
-        metadata[self._edge_source_key] = str(u)
         if self._edge_target_key in metadata:
             raise KeyError(
                 f"'{self._edge_target_key}' should not be in metadata. I need that for PK!"
             )
-        metadata[self._edge_target_key] = str(v)
+        existing = self._edge_item(u, v)
+        item = {
+            **({} if existing is None else existing),
+            **metadata,
+            self._primary_key: (
+                edge_identity(u, v)
+                if existing is None
+                else existing[self._primary_key]
+            ),
+            self._edge_source_key: str(u),
+            self._edge_target_key: str(v),
+        }
 
         if not self.has_node(u):
             self._node_table.put_item(Item={self._primary_key: str(u)})
         if not self.has_node(v):
             self._node_table.put_item(Item={self._primary_key: str(v)})
 
-        response = self._edge_table.put_item(Item=metadata)
+        response = self._edge_table.put_item(Item=item)
 
         return response
 
@@ -345,8 +361,11 @@ class DynamoDBBackend(Backend):
             dict: Metadata associated with this edge
 
         """
-        response = self._edge_table.get_item(Key={self._primary_key: f"__{u}__{v}"})
-        item = response["Item"]
+        item = self._edge_item(u, v)
+        if item is None and not self._directed:
+            item = self._edge_item(v, u)
+        if item is None:
+            raise KeyError(f"Edge {u}-{v} not found.")
         item.pop(self._primary_key)
         item.pop(self._edge_source_key)
         item.pop(self._edge_target_key)
@@ -505,7 +524,7 @@ class DynamoDBBackend(Backend):
             for source, target, metadata in zip(sources, targets, edge_metadata):
                 batch_writer.put_item(
                     Item={
-                        self._primary_key: f"__{source}__{target}",
+                        self._primary_key: edge_identity(source, target),
                         self._edge_source_key: str(source),
                         self._edge_target_key: str(target),
                         **metadata,

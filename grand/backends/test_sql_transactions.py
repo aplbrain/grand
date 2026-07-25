@@ -6,6 +6,7 @@ import pandas as pd
 sqlalchemy = pytest.importorskip("sqlalchemy")
 
 from ._sqlbackend import SQLBackend  # noqa: E402
+from ._edge_identity import edge_identity  # noqa: E402
 
 
 def test_mutations_persist_without_explicit_commit(tmp_path):
@@ -247,4 +248,74 @@ def test_ingest_rolls_back_nodes_and_edges_on_failure(tmp_path):
     backend._connection.execute = original_execute
     assert backend.get_node_count() == 0
     assert backend.get_edge_count() == 0
+    backend.close()
+
+
+def test_collision_safe_edge_ids_support_ambiguous_and_long_endpoints(tmp_path):
+    backend = SQLBackend(
+        db_url=f"sqlite:///{tmp_path / 'graph.db'}", directed=True
+    )
+    long_source = "source" * 100
+    long_target = "target" * 100
+
+    first_id = backend.add_edge("a__b", "c", {"edge": 1})
+    second_id = backend.add_edge("a", "b__c", {"edge": 2})
+    long_id = backend.add_edge(long_source, long_target, {"edge": 3})
+
+    assert first_id != second_id
+    assert len(first_id) == len(second_id) == len(long_id) == 67
+    assert backend.get_edge_by_id("a__b", "c") == {"edge": 1}
+    assert backend.get_edge_by_id("a", "b__c") == {"edge": 2}
+    assert backend.get_edge_by_id(long_source, long_target) == {"edge": 3}
+    backend.close()
+
+
+def test_legacy_sql_edge_is_read_and_updated_in_place(tmp_path):
+    backend = SQLBackend(
+        db_url=f"sqlite:///{tmp_path / 'graph.db'}", directed=True
+    )
+    backend.add_nodes_from([("A", {}), ("B", {})])
+    backend._connection.execute(
+        backend._edge_table.insert(),
+        {
+            "ID": "__A__B",
+            "Source": "A",
+            "Target": "B",
+            "_metadata": {"old": True},
+        },
+    )
+    backend._connection.commit()
+
+    returned_id = backend.add_edge("A", "B", {"new": True})
+
+    assert returned_id == "__A__B"
+    assert backend.get_edge_by_id("A", "B") == {"old": True, "new": True}
+    assert backend.get_edge_count() == 1
+    assert returned_id != edge_identity("A", "B")
+    backend.close()
+
+
+def test_ingest_updates_legacy_sql_edge_in_place(tmp_path):
+    backend = SQLBackend(
+        db_url=f"sqlite:///{tmp_path / 'graph.db'}", directed=True
+    )
+    backend._connection.execute(
+        backend._edge_table.insert(),
+        {
+            "ID": "__A__B",
+            "Source": "A",
+            "Target": "B",
+            "_metadata": {"old": True},
+        },
+    )
+    backend._connection.commit()
+
+    backend.ingest_from_edgelist_dataframe(
+        pd.DataFrame({"source": ["A"], "target": ["B"], "new": [True]}),
+        "source",
+        "target",
+    )
+
+    assert backend.get_edge_by_id("A", "B") == {"old": True, "new": True}
+    assert backend.get_edge_count() == 1
     backend.close()
