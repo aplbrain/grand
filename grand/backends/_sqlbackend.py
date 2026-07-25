@@ -438,7 +438,6 @@ class SQLBackend(Backend):
 
     def add_edges_from(self, ebunch_to_add, **attr):
         edges = []
-        updates = []
         endpoints = set()
         for edge in ebunch_to_add:
             if len(edge) == 2:
@@ -448,33 +447,56 @@ class SQLBackend(Backend):
                 u, v, metadata = edge
             metadata = {**attr, **metadata}
             endpoints.update((u, v))
-            if self.has_edge(u, v):
-                existing_metadata = self.get_edge_by_id(u, v)
-                existing_metadata.update(metadata)
-                updates.append((self._edge_row(u, v), existing_metadata))
-            else:
-                edges.append(
-                    {
-                        self._primary_key: edge_identity(u, v),
-                        self._edge_source_key: u,
-                        self._edge_target_key: v,
-                        "_metadata": metadata,
-                    }
-                )
+            edges.append(
+                {
+                    self._primary_key: edge_identity(u, v),
+                    self._edge_source_key: u,
+                    self._edge_target_key: v,
+                    "_metadata": metadata,
+                }
+            )
 
         with self.transaction():
             for node in endpoints:
                 self._insert_empty_node_if_missing(node)
             if edges:
-                self._connection.execute(self._edge_table.insert(), edges)
-            for row, metadata in updates:
-                self._connection.execute(
-                    self._edge_table.update().where(
-                        self._edge_table.c[self._primary_key]
-                        == row._mapping[self._primary_key]
-                    ),
-                    parameters={"_metadata": metadata},
-                )
+                try:
+                    with self._connection.begin_nested():
+                        self._connection.execute(self._edge_table.insert(), edges)
+                except sqlalchemy.exc.IntegrityError:
+                    edge_ids = [row[self._primary_key] for row in edges]
+                    existing = {
+                        row[self._primary_key]: row["_metadata"]
+                        for row in self._connection.execute(
+                            select(
+                                self._edge_table.c[self._primary_key],
+                                self._edge_table.c["_metadata"],
+                            ).where(
+                                self._edge_table.c[self._primary_key].in_(edge_ids)
+                            )
+                        ).mappings()
+                    }
+                    new_edges = [
+                        row
+                        for row in edges
+                        if row[self._primary_key] not in existing
+                    ]
+                    if new_edges:
+                        self._connection.execute(self._edge_table.insert(), new_edges)
+                    for row in edges:
+                        edge_id = row[self._primary_key]
+                        if edge_id in existing:
+                            self._connection.execute(
+                                self._edge_table.update().where(
+                                    self._edge_table.c[self._primary_key] == edge_id
+                                ),
+                                parameters={
+                                    "_metadata": {
+                                        **existing[edge_id],
+                                        **row["_metadata"],
+                                    }
+                                },
+                            )
 
     def all_edges_as_iterable(self, include_metadata: bool = False) -> Generator:
         """
