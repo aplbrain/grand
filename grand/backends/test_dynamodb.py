@@ -25,6 +25,29 @@ from ._dynamodb import (  # noqa: E402
 )
 
 
+class RecordingTable:
+    def __init__(self):
+        self.items = []
+        self.writer_count = 0
+        self._writer_active = False
+
+    def batch_writer(self):
+        assert not self._writer_active
+        self.writer_count += 1
+        return self
+
+    def __enter__(self):
+        self._writer_active = True
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._writer_active = False
+
+    def put_item(self, *, Item):
+        assert self._writer_active
+        self.items.append(Item)
+
+
 @pytest.fixture
 def backend():
     backend = DynamoDBBackend.__new__(DynamoDBBackend)
@@ -135,16 +158,8 @@ def test_undirected_neighbors_query_both_indexes_and_deduplicate(backend):
 
 
 def test_ingest_dataframe_is_pandas_2_compatible_without_cloud_resources(backend):
-    edge_writer = Mock()
-    node_writer = Mock()
-    backend._edge_table.batch_writer.return_value.__enter__ = Mock(
-        return_value=edge_writer
-    )
-    backend._edge_table.batch_writer.return_value.__exit__ = Mock(return_value=False)
-    backend._node_table.batch_writer.return_value.__enter__ = Mock(
-        return_value=node_writer
-    )
-    backend._node_table.batch_writer.return_value.__exit__ = Mock(return_value=False)
+    backend._edge_table = RecordingTable()
+    backend._node_table = RecordingTable()
     edgelist = pd.DataFrame(
         {
             "source": [1, 2],
@@ -157,29 +172,57 @@ def test_ingest_dataframe_is_pandas_2_compatible_without_cloud_resources(backend
 
     assert result["node_count"] == 3
     assert result["edge_count"] == 2
-    assert [call.kwargs["Item"] for call in edge_writer.put_item.call_args_list] == [
+    assert backend._edge_table.items == [
         {"ID": "__1__2", "Source": "1", "Target": "2", "weight": 0.5},
         {"ID": "__2__3", "Source": "2", "Target": "3", "weight": 1.5},
     ]
-    assert [call.kwargs["Item"] for call in node_writer.put_item.call_args_list] == [
+    assert backend._node_table.items == [
         {"ID": "1"},
         {"ID": "2"},
         {"ID": "3"},
     ]
+    assert backend._edge_table.writer_count == 1
+    assert backend._node_table.writer_count == 1
+
+
+def test_ingest_dataframe_writes_every_request_with_bounded_writers(backend):
+    backend._edge_table = RecordingTable()
+    backend._node_table = RecordingTable()
+    edge_count = 1_000
+    edgelist = pd.DataFrame(
+        {
+            "source": range(edge_count),
+            "target": range(1, edge_count + 1),
+        }
+    )
+
+    result = backend.ingest_from_edgelist_dataframe(edgelist, "source", "target")
+
+    assert result["edge_count"] == edge_count
+    assert result["node_count"] == edge_count + 1
+    assert backend._edge_table.writer_count == 1
+    assert backend._node_table.writer_count == 1
+    assert backend._edge_table.items == [
+        {
+            "ID": f"__{source}__{source + 1}",
+            "Source": str(source),
+            "Target": str(source + 1),
+        }
+        for source in range(edge_count)
+    ]
+    assert backend._node_table.items == [
+        {"ID": str(node)} for node in range(edge_count + 1)
+    ]
 
 
 def test_ingest_empty_dataframe_is_pandas_2_compatible(backend):
-    edge_context = Mock()
-    edge_context.__enter__ = Mock(return_value=Mock())
-    edge_context.__exit__ = Mock(return_value=False)
-    node_context = Mock()
-    node_context.__enter__ = Mock(return_value=Mock())
-    node_context.__exit__ = Mock(return_value=False)
-    backend._edge_table.batch_writer.return_value = edge_context
-    backend._node_table.batch_writer.return_value = node_context
+    backend._edge_table = RecordingTable()
+    backend._node_table = RecordingTable()
     edgelist = pd.DataFrame(columns=["source", "target"])
 
     result = backend.ingest_from_edgelist_dataframe(edgelist, "source", "target")
 
     assert result["node_count"] == 0
     assert result["edge_count"] == 0
+    assert backend._edge_table.items == []
+    assert backend._node_table.items == []
