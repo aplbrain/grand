@@ -607,3 +607,25 @@ def test_sql_can_ingest_edgelist_dataframe():
     assert backend.get_edge_count() == 2
     assert backend.get_edge_by_id("A", "B")["weight"] == 1
     assert backend.get_edge_by_id("B", "C")["weight"] == 2
+
+
+def test_networkx_ingest_accepts_empty_pandas_2_dataframe():
+    b = NetworkXBackend(directed=True)
+    edgelist = pd.DataFrame(columns=["source", "target"])
+
+    result = b.ingest_from_edgelist_dataframe(edgelist, "source", "target")
+
+    assert result["node_count"] == 0
+    assert result["edge_count"] == 0
+
+
+def test_sql_ingest_accepts_empty_pandas_2_dataframe():
+    if not _CAN_IMPORT_SQL:
+        pytest.skip("sqlalchemy is not installed.")
+    backend = SQLBackend(directed=True, db_url="sqlite:///:memory:")
+    edgelist = pd.DataFrame(columns=["source", "target"])
+
+    result = backend.ingest_from_edgelist_dataframe(edgelist, "source", "target")
+
+    assert result["node_count"] == 0
+    assert result["edge_count"] == 0

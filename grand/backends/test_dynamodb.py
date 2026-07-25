@@ -3,6 +3,7 @@ import sys
 from types import ModuleType
 from unittest.mock import Mock
 
+import pandas as pd
 import pytest
 
 
@@ -131,3 +132,54 @@ def test_undirected_neighbors_query_both_indexes_and_deduplicate(backend):
         _EDGE_TARGET_INDEX,
     ]
     assert backend._edge_table.scan.call_args_list == []
+
+
+def test_ingest_dataframe_is_pandas_2_compatible_without_cloud_resources(backend):
+    edge_writer = Mock()
+    node_writer = Mock()
+    backend._edge_table.batch_writer.return_value.__enter__ = Mock(
+        return_value=edge_writer
+    )
+    backend._edge_table.batch_writer.return_value.__exit__ = Mock(return_value=False)
+    backend._node_table.batch_writer.return_value.__enter__ = Mock(
+        return_value=node_writer
+    )
+    backend._node_table.batch_writer.return_value.__exit__ = Mock(return_value=False)
+    edgelist = pd.DataFrame(
+        {
+            "source": [1, 2],
+            "target": [2, 3],
+            "weight": [0.5, 1.5],
+        }
+    )
+
+    result = backend.ingest_from_edgelist_dataframe(edgelist, "source", "target")
+
+    assert result["node_count"] == 3
+    assert result["edge_count"] == 2
+    assert [call.kwargs["Item"] for call in edge_writer.put_item.call_args_list] == [
+        {"ID": "__1__2", "Source": "1", "Target": "2", "weight": 0.5},
+        {"ID": "__2__3", "Source": "2", "Target": "3", "weight": 1.5},
+    ]
+    assert [call.kwargs["Item"] for call in node_writer.put_item.call_args_list] == [
+        {"ID": "1"},
+        {"ID": "2"},
+        {"ID": "3"},
+    ]
+
+
+def test_ingest_empty_dataframe_is_pandas_2_compatible(backend):
+    edge_context = Mock()
+    edge_context.__enter__ = Mock(return_value=Mock())
+    edge_context.__exit__ = Mock(return_value=False)
+    node_context = Mock()
+    node_context.__enter__ = Mock(return_value=Mock())
+    node_context.__exit__ = Mock(return_value=False)
+    backend._edge_table.batch_writer.return_value = edge_context
+    backend._node_table.batch_writer.return_value = node_context
+    edgelist = pd.DataFrame(columns=["source", "target"])
+
+    result = backend.ingest_from_edgelist_dataframe(edgelist, "source", "target")
+
+    assert result["node_count"] == 0
+    assert result["edge_count"] == 0
