@@ -396,17 +396,6 @@ class SQLBackend(Backend):
         with self._mutation():
             self._insert_empty_node_if_missing(u)
             self._insert_empty_node_if_missing(v)
-            existing = self._edge_row(u, v)
-            if existing:
-                existing_metadata = {**existing._metadata, **metadata}
-                self._connection.execute(
-                    self._edge_table.update().where(
-                        self._edge_table.c[self._primary_key]
-                        == existing._mapping[self._primary_key]
-                    ),
-                    parameters={"_metadata": existing_metadata},
-                )
-                return existing._mapping[self._primary_key]
 
             if self._transaction_depth:
                 self._connection.execute(
@@ -417,7 +406,7 @@ class SQLBackend(Backend):
                         self._edge_target_key: v,
                         "_metadata": metadata,
                     },
-                )
+                    )
                 return pk
 
             try:
@@ -432,7 +421,18 @@ class SQLBackend(Backend):
                         },
                     )
             except sqlalchemy.exc.IntegrityError:
-                raise
+                existing = self._connection.execute(
+                    self._edge_table.select().where(
+                        self._edge_table.c[self._primary_key] == pk
+                    )
+                ).fetchone()
+                existing_metadata = {**existing._metadata, **metadata}
+                self._connection.execute(
+                    self._edge_table.update().where(
+                        self._edge_table.c[self._primary_key] == pk
+                    ),
+                    parameters={"_metadata": existing_metadata},
+                )
 
         return pk
 

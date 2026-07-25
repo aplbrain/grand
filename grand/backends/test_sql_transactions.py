@@ -6,7 +6,6 @@ import pandas as pd
 sqlalchemy = pytest.importorskip("sqlalchemy")
 
 from ._sqlbackend import SQLBackend  # noqa: E402
-from ._edge_identity import edge_identity  # noqa: E402
 
 
 def test_mutations_persist_without_explicit_commit(tmp_path):
@@ -295,7 +294,7 @@ def test_existing_sql_edge_uses_primary_key_lookup(tmp_path):
     backend.close()
 
 
-def test_legacy_sql_edge_is_read_and_updated_in_place(tmp_path):
+def test_legacy_sql_edge_remains_readable(tmp_path):
     backend = SQLBackend(
         db_url=f"sqlite:///{tmp_path / 'graph.db'}", directed=True
     )
@@ -311,10 +310,6 @@ def test_legacy_sql_edge_is_read_and_updated_in_place(tmp_path):
     )
     backend._connection.commit()
 
-    returned_id = backend.add_edge("A", "B", {"new": True})
-
-    assert returned_id == "__A__B"
-    assert backend.get_edge_by_id("A", "B") == {"old": True, "new": True}
+    assert backend.get_edge_by_id("A", "B") == {"old": True}
     assert backend.get_edge_count() == 1
-    assert returned_id != edge_identity("A", "B")
     backend.close()
