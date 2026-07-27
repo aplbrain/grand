@@ -338,11 +338,6 @@ class TestBackend:
             NetworkXBackend,
             "NetworkX undirected predecessor support is not implemented",
         )
-        xfail_backend(
-            backend,
-            DataFrameBackend,
-            "APL #77: undirected predecessors return self",
-        )
         b = backend(directed=False, **kwargs)
         b.add_edge("A", "B", {"weight": 1})
 
@@ -588,6 +583,17 @@ class TestDataFrameBackend:
         assert backend.has_node("C")
         assert not backend.has_node("missing")
         assert backend.get_node_count() == 3
+
+    def test_undirected_predecessors_return_opposite_endpoint_with_metadata(self):
+        backend = DataFrameBackend(directed=False)
+        backend.add_edge("A", "B", {"weight": 1})
+        backend.add_edge("C", "A", {"weight": 2})
+
+        assert set(backend.get_node_predecessors("A")) == {"B", "C"}
+        assert backend.get_node_predecessors("A", include_metadata=True) == {
+            "B": {"weight": 1},
+            "C": {"weight": 2},
+        }
 
 
 def test_networkx_can_ingest_edgelist_dataframe():

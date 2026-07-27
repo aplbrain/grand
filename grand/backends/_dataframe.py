@@ -417,7 +417,7 @@ class DataFrameBackend(Backend):
                 return {
                     (
                         r[self._edge_df_target_column]
-                        if r[self._edge_df_target_column] != u
+                        if r[self._edge_df_source_column] == u
                         else r[self._edge_df_source_column]
                     ): self._edge_as_dict(r)
                     for _, r in self._edge_df[
@@ -450,9 +450,9 @@ class DataFrameBackend(Backend):
             return iter(
                 [
                     (
-                        row[self._edge_df_source_column]
-                        if row[self._edge_df_target_column] != u
-                        else row[self._edge_df_target_column]
+                        row[self._edge_df_target_column]
+                        if row[self._edge_df_source_column] == u
+                        else row[self._edge_df_source_column]
                     )
                     for _, row in self._edge_df[
                         (self._edge_df[self._edge_df_target_column] == u)
