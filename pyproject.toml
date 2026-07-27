@@ -34,6 +34,7 @@ dev-dependencies = [
 
 [project.optional-dependencies]
 dynamodb = ["boto3"]
+gremlin = ["gremlinpython"]
 igraph = ["igraph"]
 networkit = ["cmake", "cython", "networkit>=11.2.1", "numpy>=2.0.0"]
 sql = ["SQLAlchemy>=1.3"]
