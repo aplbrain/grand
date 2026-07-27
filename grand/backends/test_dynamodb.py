@@ -135,6 +135,69 @@ def test_undirected_neighbors_query_both_indexes_and_deduplicate(backend):
     assert backend._edge_table.scan.call_args_list == []
 
 
+def test_directed_bulk_degrees_scan_edges_once(backend):
+    backend._edge_table.scan.side_effect = [
+        {
+            "Items": [
+                {"ID": "ab", "Source": "A", "Target": "B"},
+                {"ID": "ac", "Source": "A", "Target": "C"},
+            ],
+            "LastEvaluatedKey": {"ID": "ac"},
+        },
+        {"Items": [{"ID": "ca", "Source": "C", "Target": "A"}]},
+    ]
+
+    assert backend.degrees(["A", "B", "C", "D"]) == {
+        "A": 3,
+        "B": 1,
+        "C": 2,
+        "D": 0,
+    }
+    first_scan, second_scan = backend._edge_table.scan.call_args_list
+    assert first_scan.kwargs == {}
+    assert second_scan.kwargs == {"ExclusiveStartKey": {"ID": "ac"}}
+    backend._edge_table.query.assert_not_called()
+
+
+def test_directed_bulk_in_and_out_degrees_scan_once(backend):
+    edges = [
+        {"ID": "12", "Source": "1", "Target": "2"},
+        {"ID": "13", "Source": "1", "Target": "3"},
+    ]
+    backend._edge_table.scan.return_value = {"Items": edges}
+
+    assert backend.out_degrees([1, 2, 3]) == {1: 2, 2: 0, 3: 0}
+    backend._edge_table.scan.assert_called_once_with()
+    backend._edge_table.reset_mock()
+    backend._edge_table.scan.return_value = {"Items": edges}
+    assert backend.in_degrees([1, 2, 3]) == {1: 0, 2: 1, 3: 1}
+    backend._edge_table.scan.assert_called_once_with()
+    backend._edge_table.query.assert_not_called()
+
+
+def test_directed_all_degrees_scan_once(backend):
+    backend._edge_table.scan.return_value = {
+        "Items": [{"ID": "ab", "Source": "A", "Target": "B"}]
+    }
+
+    assert backend.degrees() == {"A": 1, "B": 1}
+    backend._edge_table.scan.assert_called_once_with()
+
+
+def test_undirected_bulk_degrees_scan_edges_once_and_deduplicate(backend):
+    backend._directed = False
+    backend._edge_table.scan.return_value = {
+        "Items": [
+            {"ID": "ab", "Source": "A", "Target": "B"},
+            {"ID": "aa", "Source": "A", "Target": "A"},
+        ]
+    }
+
+    assert backend.degrees(["A", "B", "C"]) == {"A": 2, "B": 1, "C": 0}
+    backend._edge_table.scan.assert_called_once_with()
+    backend._edge_table.query.assert_not_called()
+
+
 def test_add_edge_uses_collision_safe_bounded_identity(backend):
     backend._node_table.get_item.return_value = {"Item": {"ID": "exists"}}
     backend._edge_table.get_item.return_value = {}
