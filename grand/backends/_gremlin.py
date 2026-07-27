@@ -4,10 +4,7 @@ https://tinkerpop.apache.org/docs/current/reference/
 
 from typing import Hashable, Collection
 
-import pandas as pd
-from gremlin_python.structure.graph import Graph
 from gremlin_python.process.graph_traversal import __, GraphTraversalSource
-from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 
 from .backend import Backend
 
@@ -164,7 +161,7 @@ class GremlinBackend(Backend):
         try:
             self.get_edge_by_id(u, v)
             e = self._g.V().has(ID, u).outE().as_("e").inV().has(ID, v).select("e")
-        except IndexError:
+        except KeyError:
             if not self.has_node(u):
                 self.add_node(u, {})
             if not self.has_node(v):
@@ -231,7 +228,7 @@ class GremlinBackend(Backend):
             dict: Metadata associated with this edge
 
         """
-        return (
+        properties = (
             self._g.V()
             .has(ID, u)
             .outE()
@@ -239,9 +236,12 @@ class GremlinBackend(Backend):
             .inV()
             .has(ID, v)
             .select("e")
-            .properties()
+            .valueMap()
             .toList()
-        )[0]
+        )
+        if not properties:
+            raise KeyError((u, v))
+        return _node_to_metadata(properties[0])
 
     def get_node_neighbors(
         self, u: Hashable, include_metadata: bool = False
@@ -287,7 +287,7 @@ class GremlinBackend(Backend):
         """
         if include_metadata:
             return {
-                e["source"]: e
+                e["source"]: _node_to_metadata(e["properties"])
                 for e in (
                     self._g.V()
                     .has(ID, u)
@@ -299,7 +299,7 @@ class GremlinBackend(Backend):
                     .toList()
                 )
             }
-        return self._g.V().out().has(ID, u).values(ID).toList()
+        return self._g.V().has(ID, u).in_().values(ID).toList()
 
     def get_node_count(self) -> int:
         """
