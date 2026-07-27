@@ -1,4 +1,6 @@
 import cachetools.func
+from collections.abc import Iterator
+from copy import deepcopy
 from typing import Callable, Hashable, Collection
 import abc
 
@@ -330,6 +332,9 @@ class InMemoryCachedBackend(CachedBackend):
 
     Wraps each call to the Backend with an LRU cache.
 
+    Cache operations are synchronized by cachetools, but calls across methods
+    are not atomic and the wrapped backend defines mutation thread safety.
+
     """
 
     _cache_types = {
@@ -394,8 +399,9 @@ class InMemoryCachedBackend(CachedBackend):
 
         def _dirty_cache_decorator(method_: Callable):
             def dirty_cache_dec_wrapper(*args, **kwargs):
+                result = method_(*args, **kwargs)
                 self.clear_cache()
-                return method_(*args, **kwargs)
+                return result
 
             return dirty_cache_dec_wrapper
 
@@ -419,8 +425,18 @@ class InMemoryCachedBackend(CachedBackend):
                 )
 
     def _wrapped(self, method: str) -> Callable:
-        c = self._cache_factory()(getattr(self.backend, method))
-        return c
+        def snapshot(*args, **kwargs):
+            result = getattr(self.backend, method)(*args, **kwargs)
+            return tuple(result) if isinstance(result, Iterator) else deepcopy(result)
+
+        cached = self._cache_factory()(snapshot)
+
+        def wrapped(*args, **kwargs):
+            return deepcopy(cached(*args, **kwargs))
+
+        wrapped.cache_clear = cached.cache_clear
+        wrapped.cache_info = cached.cache_info
+        return wrapped
 
     def clear_cache(self):
         """
