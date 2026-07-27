@@ -323,6 +323,8 @@ class NetworkitDialect:
         # TODO: implement backend#degree?
         E = self.parent.backend.get_edge_count()
         V = self.parent.backend.get_node_count()
+        if V < 2:
+            return 0
 
         if self.parent.backend.is_directed():
             return E / (V * (V - 1))

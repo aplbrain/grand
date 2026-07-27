@@ -217,3 +217,11 @@ class TestNetworkitDialect(unittest.TestCase):
         assert G.networkit.density() == 0.5
         G.networkit.addEdge(v, u)
         assert G.networkit.density() == 1
+
+    def test_density_is_zero_for_empty_and_singleton_graphs(self):
+        for directed in (False, True):
+            G = Graph(directed=directed)
+            assert G.networkit.density() == 0
+
+            G.networkit.addNode()
+            assert G.networkit.density() == 0

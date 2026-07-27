@@ -1,5 +1,4 @@
-from typing import Hashable, Generator, Iterable
-import abc
+from typing import Hashable, Generator
 
 import networkit
 import pandas as pd
@@ -83,10 +82,17 @@ class NetworkitBackend(Backend):
             Hashable: The ID of this node, as inserted
 
         """
-        # TODO: Remove metadata from lookup if insertion fails
+        if self.has_node(node_name):
+            self._meta.add_node(node_name, metadata or {})
+            return self._names.get_id(node_name)
+
         nk_id = self._nk_graph.addNode()
-        self._names.add_node(node_name, nk_id)
-        self._meta.add_node(node_name, metadata)
+        try:
+            self._meta.add_node(node_name, metadata or {})
+            self._names.add_node(node_name, nk_id)
+        except Exception:
+            self._nk_graph.removeNode(nk_id)
+            raise
         return nk_id
 
     def get_node_by_id(self, node_name: Hashable):
