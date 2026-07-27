@@ -7,6 +7,7 @@ import pandas as pd
 import networkx as nx
 
 from . import NetworkXBackend, DataFrameBackend
+from .metadatastore import DictMetadataStore
 
 try:
     from ._dynamodb import DynamoDBBackend
@@ -484,6 +485,36 @@ def test_get_density_performance(backend):
         for i in range(1000 - 1):
             G.nx.add_edge(i, i + 1)
     assert nx.density(G.nx) <= 0.005
+
+
+@pytest.mark.skipif(not _CAN_IMPORT_NETWORKIT, reason="networkit is not installed")
+def test_networkit_duplicate_node_updates_without_orphans():
+    backend = NetworkitBackend()
+
+    first_id = backend.add_node("A", {"first": True})
+    second_id = backend.add_node("A", {"second": True})
+
+    assert second_id == first_id
+    assert backend.get_node_count() == 1
+    assert backend._nk_graph.numberOfNodes() == 1
+    assert backend.all_nodes_as_iterable(include_metadata=True) == [
+        ("A", {"first": True, "second": True})
+    ]
+
+
+@pytest.mark.skipif(not _CAN_IMPORT_NETWORKIT, reason="networkit is not installed")
+def test_networkit_node_metadata_failure_rolls_back_physical_node():
+    class FailingMetadataStore(DictMetadataStore):
+        def add_node(self, node_name, metadata):
+            raise RuntimeError("metadata failed")
+
+    backend = NetworkitBackend(metadata_store=FailingMetadataStore())
+
+    with pytest.raises(RuntimeError, match="metadata failed"):
+        backend.add_node("A", {})
+
+    assert backend.get_node_count() == 0
+    assert not backend.has_node("A")
 
 
 @pytest.mark.benchmark
