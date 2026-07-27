@@ -327,3 +327,31 @@ def test_legacy_sql_edge_remains_readable(tmp_path):
     assert backend.get_edge_by_id("A", "B") == {"old": True}
     assert backend.get_edge_count() == 1
     backend.close()
+
+
+def test_undirected_sql_degrees_aggregate_both_edge_orientations(tmp_path):
+    backend = SQLBackend(
+        db_url=f"sqlite:///{tmp_path / 'graph.db'}", directed=False
+    )
+    backend.add_edges_from([("A", "B"), ("C", "A")])
+
+    expected = {"A": 2, "B": 1, "C": 1}
+    assert backend.out_degrees() == expected
+    assert backend.in_degrees() == expected
+    backend.close()
+
+
+def test_undirected_sql_degrees_include_requested_zero_degree_nodes(tmp_path):
+    backend = SQLBackend(
+        db_url=f"sqlite:///{tmp_path / 'graph.db'}", directed=False
+    )
+    backend.add_nodes_from([("D", {})])
+    backend.add_edges_from([("A", "B"), ("C", "A")])
+
+    expected = {"A": 2, "B": 1, "C": 1, "D": 0}
+    assert backend.out_degrees(["A", "B", "C", "D"]) == expected
+    assert backend.in_degrees(["A", "B", "C", "D"]) == expected
+    assert backend.out_degrees("D") == 0
+    assert backend.in_degrees("D") == 0
+    assert backend.out_degrees([1]) == {1: 0}
+    backend.close()
