@@ -1,4 +1,5 @@
 import time
+import pytest
 from .backend import InMemoryCachedBackend
 from ._networkx import NetworkXBackend
 from ._sqlbackend import SQLBackend
@@ -80,4 +81,41 @@ def test_cache_info():
     cached.get_node_count()
 
     assert cached.cache_info()["get_node_count"].misses == 1
+    assert cached.cache_info()["get_node_count"].hits == 1
+
+
+def test_cached_iterators_can_be_consumed_repeatedly():
+    vanilla = NetworkXBackend()
+    vanilla.add_edge("A", "B", {})
+    cached = InMemoryCachedBackend(vanilla, maxsize=1024, ttl=20)
+
+    assert list(cached.get_node_neighbors("A")) == ["B"]
+    assert list(cached.get_node_neighbors("A")) == ["B"]
+
+
+def test_cached_mutable_values_are_isolated_from_callers():
+    vanilla = NetworkXBackend()
+    vanilla.add_edge("A", "B", {"weight": {"value": 1}})
+    cached = InMemoryCachedBackend(vanilla, maxsize=1024, ttl=20)
+
+    metadata = cached.get_edge_by_id("A", "B")
+    metadata["weight"]["value"] = 99
+
+    assert cached.get_edge_by_id("A", "B") == {"weight": {"value": 1}}
+
+
+def test_failed_writes_do_not_clear_cache():
+    class FailingBackend(NetworkXBackend):
+        def add_node(self, *args, **kwargs):
+            raise RuntimeError("write failed")
+
+    vanilla = FailingBackend()
+    cached = InMemoryCachedBackend(vanilla, maxsize=1024, ttl=20)
+    cached.get_node_count()
+
+    with pytest.raises(RuntimeError, match="write failed"):
+        cached.add_node("A", {})
+
+    assert cached.cache_info()["get_node_count"].hits == 0
+    cached.get_node_count()
     assert cached.cache_info()["get_node_count"].hits == 1
