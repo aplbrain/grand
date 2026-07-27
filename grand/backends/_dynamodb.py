@@ -502,6 +502,60 @@ class DynamoDBBackend(Backend):
             "ItemCount"
         ]
 
+    def degrees(self, nbunch=None) -> Collection:
+        if nbunch is not None and not isinstance(nbunch, (list, tuple)):
+            return self.degree(nbunch)
+
+        requested = None if nbunch is None else list(nbunch)
+        degrees = {} if requested is None else {node: 0 for node in requested}
+        requested_by_id = (
+            None if requested is None else {str(node): node for node in requested}
+        )
+        for edge in self._scan_table(self._edge_table):
+            source = edge[self._edge_source_key]
+            target = edge[self._edge_target_key]
+            if requested_by_id is None:
+                degrees[source] = degrees.get(source, 0) + 1
+                if self._directed or target != source:
+                    degrees[target] = degrees.get(target, 0) + 1
+                continue
+            if source in requested_by_id:
+                node = requested_by_id[source]
+                degrees[node] += 1
+            if target in requested_by_id and (self._directed or target != source):
+                node = requested_by_id[target]
+                degrees[node] += 1
+        return degrees
+
+    def in_degrees(self, nbunch=None) -> Collection:
+        if not self._directed:
+            return self.degrees(nbunch)
+        return self._directed_bulk_degrees(nbunch, self._edge_target_key)
+
+    def out_degrees(self, nbunch=None) -> Collection:
+        if not self._directed:
+            return self.degrees(nbunch)
+        return self._directed_bulk_degrees(nbunch, self._edge_source_key)
+
+    def _directed_bulk_degrees(self, nbunch, endpoint_key):
+        if nbunch is not None and not isinstance(nbunch, (list, tuple)):
+            if endpoint_key == self._edge_target_key:
+                return super().in_degree(nbunch)
+            return super().out_degree(nbunch)
+
+        requested = None if nbunch is None else list(nbunch)
+        degrees = {} if requested is None else {node: 0 for node in requested}
+        requested_by_id = (
+            None if requested is None else {str(node): node for node in requested}
+        )
+        for edge in self._scan_table(self._edge_table):
+            endpoint = edge[endpoint_key]
+            if requested_by_id is None:
+                degrees[endpoint] = degrees.get(endpoint, 0) + 1
+            elif endpoint in requested_by_id:
+                degrees[requested_by_id[endpoint]] += 1
+        return degrees
+
     # Ingesting
 
     def ingest_from_edgelist_dataframe(
