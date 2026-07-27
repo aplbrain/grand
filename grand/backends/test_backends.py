@@ -565,6 +565,30 @@ class TestDataFrameBackend:
         assert b.get_edge_count() == 5
         assert b.get_node_count() == 5
 
+    def test_edge_only_nodes_are_unique_members_and_counted_from_union(self):
+        edges = pd.DataFrame(
+            {
+                "source": ["A", "B", "A"],
+                "target": ["B", "C", "B"],
+            }
+        )
+        backend = DataFrameBackend(
+            edge_df=edges,
+            edge_df_source_column="source",
+            edge_df_target_column="target",
+        )
+
+        assert backend.all_nodes_as_iterable() == ["A", "B", "C"]
+        assert backend.all_nodes_as_iterable(include_metadata=True) == [
+            ("A", {}),
+            ("B", {}),
+            ("C", {}),
+        ]
+        assert backend.has_node("A")
+        assert backend.has_node("C")
+        assert not backend.has_node("missing")
+        assert backend.get_node_count() == 3
+
 
 def test_networkx_can_ingest_edgelist_dataframe():
     backend = NetworkXBackend(directed=True)

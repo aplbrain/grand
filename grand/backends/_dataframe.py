@@ -146,12 +146,17 @@ class DataFrameBackend(Backend):
             ]
 
         else:
+            nodes = pd.unique(
+                pd.concat(
+                    [
+                        self._edge_df[self._edge_df_source_column],
+                        self._edge_df[self._edge_df_target_column],
+                    ],
+                    ignore_index=True,
+                )
+            )
             return [
-                (node_id, {}) if include_metadata else node_id
-                for node_id in self._edge_df[self._edge_df_source_column]
-            ] + [
-                (node_id, {}) if include_metadata else node_id
-                for node_id in self._edge_df[self._edge_df_target_column]
+                (node_id, {}) if include_metadata else node_id for node_id in nodes
             ]
 
     def has_node(self, u: Hashable) -> bool:
@@ -167,8 +172,8 @@ class DataFrameBackend(Backend):
         if self._node_df is not None:
             return u in self._node_df.index
 
-        return u in (self._edge_df[self._edge_df_source_column]) or u in (
-            self._edge_df[self._edge_df_target_column]
+        return u in self._edge_df[self._edge_df_source_column].values or u in (
+            self._edge_df[self._edge_df_target_column].values
         )
 
     def add_edge(self, u: Hashable, v: Hashable, metadata: dict):
@@ -469,10 +474,15 @@ class DataFrameBackend(Backend):
         """
         if self._node_df is not None:
             return len(self._node_df)
-        # Return number of unique sources intersected with number of unique targets
         return len(
-            set(self._edge_df[self._edge_df_source_column]).intersection(
-                set(self._edge_df[self._edge_df_target_column])
+            pd.unique(
+                pd.concat(
+                    [
+                        self._edge_df[self._edge_df_source_column],
+                        self._edge_df[self._edge_df_target_column],
+                    ],
+                    ignore_index=True,
+                )
             )
         )
 
