@@ -711,6 +711,9 @@ class SQLBackend(Backend):
 
         """
 
+        if not self._directed:
+            return self._undirected_degrees(nbunch)
+
         if nbunch is None:
             where_clause = None
         elif isinstance(nbunch, (list, tuple)):
@@ -721,18 +724,11 @@ class SQLBackend(Backend):
             # single node:
             where_clause = self._edge_table.c[self._edge_source_key] == str(nbunch)
 
-        if self._directed:
-            query = (
-                select(self._edge_table.c[self._edge_source_key], func.count())
-                .select_from(self._edge_table)
-                .group_by(self._edge_table.c[self._edge_source_key])
-            )
-        else:
-            query = (
-                select(self._edge_table.c[self._edge_source_key], func.count())
-                .select_from(self._edge_table)
-                .group_by(self._edge_table.c[self._edge_source_key])
-            )
+        query = (
+            select(self._edge_table.c[self._edge_source_key], func.count())
+            .select_from(self._edge_table)
+            .group_by(self._edge_table.c[self._edge_source_key])
+        )
 
         if where_clause is not None:
             query = query.where(where_clause)
@@ -755,6 +751,9 @@ class SQLBackend(Backend):
 
         """
 
+        if not self._directed:
+            return self._undirected_degrees(nbunch)
+
         if nbunch is None:
             where_clause = None
         elif isinstance(nbunch, (list, tuple)):
@@ -765,18 +764,11 @@ class SQLBackend(Backend):
             # single node:
             where_clause = self._edge_table.c[self._edge_target_key] == str(nbunch)
 
-        if self._directed:
-            query = (
-                select(self._edge_table.c[self._edge_target_key], func.count())
-                .select_from(self._edge_table)
-                .group_by(self._edge_table.c[self._edge_target_key])
-            )
-        else:
-            query = (
-                select(self._edge_table.c[self._edge_target_key], func.count())
-                .select_from(self._edge_table)
-                .group_by(self._edge_table.c[self._edge_target_key])
-            )
+        query = (
+            select(self._edge_table.c[self._edge_target_key], func.count())
+            .select_from(self._edge_table)
+            .group_by(self._edge_table.c[self._edge_target_key])
+        )
 
         if where_clause is not None:
             query = query.where(where_clause)
@@ -785,6 +777,30 @@ class SQLBackend(Backend):
 
         if nbunch and not isinstance(nbunch, (list, tuple)):
             return results.get(nbunch, 0)
+        return results
+
+    def _undirected_degrees(self, nbunch=None):
+        endpoints = select(
+            self._edge_table.c[self._edge_source_key].label("node")
+        ).union_all(
+            select(self._edge_table.c[self._edge_target_key].label("node"))
+        ).subquery()
+        query = select(endpoints.c.node, func.count()).group_by(endpoints.c.node)
+
+        requested = None
+        if isinstance(nbunch, (list, tuple)):
+            requested = list(nbunch)
+            query = query.where(
+                endpoints.c.node.in_([str(node) for node in requested])
+            )
+        elif nbunch is not None:
+            query = query.where(endpoints.c.node == str(nbunch))
+
+        results = {row[0]: row[1] for row in self._connection.execute(query)}
+        if requested is not None:
+            return {node: results.get(str(node), 0) for node in requested}
+        if nbunch is not None:
+            return results.get(str(nbunch), 0)
         return results
 
     def ingest_from_edgelist_dataframe(
