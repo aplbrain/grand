@@ -4,10 +4,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .. import Graph
 
-import pandas as pd
-
 import networkx as nx
-from networkx.classes.reportviews import NodeView
+from networkx.classes.reportviews import EdgeView, OutEdgeView
 from networkx.classes.coreviews import AdjacencyView, AtlasView
 
 
@@ -208,6 +206,11 @@ class NetworkXDialect(nx.Graph):
 
     def is_directed(self):
         return self.parent.backend.is_directed()
+
+    @property
+    def edges(self):
+        view = OutEdgeView if self.is_directed() else EdgeView
+        return view(self)
 
     def __len__(self):
         return self.parent.backend.get_node_count()
