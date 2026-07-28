@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## **0.8.0** (July 28, 2026)
+
+-   Backends:
+    -   Make SQL mutations atomic and durable, preserve data during ingestion,
+        harden connection lifecycle handling, and fix undirected degree
+        aggregation.
+    -   Replace DynamoDB adjacency scans with indexed queries, correct node
+        existence checks, and batch degree queries.
+    -   Add collision-safe persisted edge identities for SQL and DynamoDB.
+    -   Repair pandas 2 DataFrame ingestion, edge-only node enumeration, and
+        undirected predecessor traversal.
+    -   Make Networkit duplicate node updates consistent and return zero density
+        for empty and singleton graphs.
+    -   Correct Gremlin predecessor traversal, edge metadata retrieval, and edge
+        upsert behavior.
+    -   Isolate cached iterators and mutable values from cache consumers.
+-   Dialects:
+    -   Preserve reciprocal directed edges in the NetworkX dialect.
+-   Performance:
+    -   Improve pandas and igraph ingestion and backend degree operations.
+    -   Add CodSpeed benchmarks for real backend operations.
+-   Housekeeping:
+    -   Add a Gremlin optional dependency and run mocked Gremlin tests in CI.
+    -   Expand shared backend contracts and add focused DynamoDB, SQL transaction,
+        cache, Gremlin, and performance coverage.
+
 ## **0.7.0** (May 25, 2025)
 
 -   Housekeeping:
