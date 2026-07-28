@@ -3,13 +3,6 @@ import unittest
 
 from .. import Graph
 from ..backends import NetworkXBackend
-from . import (
-    NetworkXDialect,
-    IGraphDialect,
-    NetworkitDialect,
-    _GrandAdjacencyView,
-    _GrandNodeAtlasView,
-)
 import networkx as nx
 
 
@@ -83,13 +76,16 @@ class TestNetworkXDialect(unittest.TestCase):
     def test_nx_edges(self):
         G = Graph(directed=True).nx
         H = nx.DiGraph()
-        G.add_edge("1", "2")
+        G.add_edge("1", "2", direction="forward")
+        G.add_edge("2", "1", direction="reverse")
         G.add_edge("1", "3")
-        H.add_edge("1", "2")
+        H.add_edge("1", "2", direction="forward")
+        H.add_edge("2", "1", direction="reverse")
         H.add_edge("1", "3")
         self.assertEqual(dict(G.edges), dict(H.edges))
         self.assertEqual(dict(G.edges()), dict(H.edges()))
-        self.assertEqual(list(G.edges["1", "2"]), list(H.edges["1", "2"]))
+        self.assertEqual(G.edges["1", "2"], H.edges["1", "2"])
+        self.assertEqual(G.edges["2", "1"], H.edges["2", "1"])
 
     def test_degree_undirected(self):
         G1 = Graph(backend=NetworkXBackend(directed=False))
