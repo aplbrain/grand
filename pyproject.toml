@@ -1,6 +1,6 @@
 [project]
 name = "grand-graph"
-version = "0.7.0"
+version = "0.8.0"
 description = "Graph database wrapper for non-graph datastores"
 authors = [{ name = "Jordan Matelsky", email = "opensource@matelsky.com" }]
 requires-python = ">=3.10"

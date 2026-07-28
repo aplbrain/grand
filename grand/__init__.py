@@ -10,7 +10,7 @@ from .dialects import NetworkXDialect, IGraphDialect, NetworkitDialect
 
 _DEFAULT_BACKEND = NetworkXBackend
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 
 class Graph:
